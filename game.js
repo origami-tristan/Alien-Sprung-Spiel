@@ -1463,7 +1463,7 @@ class Candy {
         return true;
     }
     
-    // Render the candy
+    // Render the candy in classic bonbon shape
     render(ctx) {
         if (this.isCollected) return;
         
@@ -1486,55 +1486,112 @@ class Candy {
         
         // Draw glow effect (stronger for floating candies)
         const glowAlpha = this.isFloating ? 0.5 : 0.3;
-        const glowSize = this.isFloating ? 8 : 6;
+        const glowRadius = this.isFloating ? 12 : 8;
         
         if (this.glowIntensity > 0.5) {
-            ctx.fillStyle = `${this.wrapperColor}${Math.floor((this.glowIntensity - 0.5) * glowAlpha * 255).toString(16).padStart(2, '0')}`;
-            ctx.fillRect(bounds.x - glowSize/2, bounds.y - glowSize/2, bounds.width + glowSize, bounds.height + glowSize);
+            const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+            glowGradient.addColorStop(0, `${this.wrapperColor}${Math.floor((this.glowIntensity - 0.5) * glowAlpha * 255).toString(16).padStart(2, '0')}`);
+            glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         // Draw floating sparkles for floating candies
         if (this.isFloating) {
             ctx.fillStyle = `rgba(255, 255, 255, ${this.glowIntensity * 0.8})`;
             for (let i = 0; i < 4; i++) {
-                const sparkleX = bounds.x + Math.random() * bounds.width;
-                const sparkleY = bounds.y - 10 - Math.random() * 15;
+                const angle = (i / 4) * Math.PI * 2 + this.rotationAngle;
+                const sparkleX = centerX + Math.cos(angle) * (bounds.width / 2 + 8);
+                const sparkleY = centerY + Math.sin(angle) * (bounds.height / 2 + 8);
                 const sparkleSize = 1 + Math.random();
                 ctx.fillRect(sparkleX, sparkleY, sparkleSize, sparkleSize);
             }
         }
         
-        // Draw candy wrapper (outer layer)
+        // Draw bonbon wrapper ends (twisted paper ends)
+        const wrapperEndWidth = 6;
+        const wrapperEndHeight = 8;
+        
+        // Left wrapper end
         ctx.fillStyle = this.wrapperColor;
-        ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        ctx.beginPath();
+        ctx.moveTo(bounds.x - wrapperEndWidth, centerY - wrapperEndHeight/2);
+        ctx.lineTo(bounds.x, centerY - 3);
+        ctx.lineTo(bounds.x, centerY + 3);
+        ctx.lineTo(bounds.x - wrapperEndWidth, centerY + wrapperEndHeight/2);
+        ctx.closePath();
+        ctx.fill();
         
-        // Draw candy body (inner layer)
-        ctx.fillStyle = this.candyColor;
-        const innerMargin = 3;
-        ctx.fillRect(bounds.x + innerMargin, bounds.y + innerMargin, 
-                    bounds.width - innerMargin * 2, bounds.height - innerMargin * 2);
+        // Right wrapper end
+        ctx.beginPath();
+        ctx.moveTo(bounds.x + bounds.width + wrapperEndWidth, centerY - wrapperEndHeight/2);
+        ctx.lineTo(bounds.x + bounds.width, centerY - 3);
+        ctx.lineTo(bounds.x + bounds.width, centerY + 3);
+        ctx.lineTo(bounds.x + bounds.width + wrapperEndWidth, centerY + wrapperEndHeight/2);
+        ctx.closePath();
+        ctx.fill();
         
-        // Draw wrapper twist marks on sides
-        ctx.fillStyle = this.wrapperColor;
-        const twistWidth = 2;
-        ctx.fillRect(bounds.x, bounds.y + 5, twistWidth, bounds.height - 10);
-        ctx.fillRect(bounds.x + bounds.width - twistWidth, bounds.y + 5, twistWidth, bounds.height - 10);
+        // Draw main bonbon body (oval/ellipse shape)
+        const bodyGradient = ctx.createRadialGradient(
+            centerX - bounds.width * 0.2, centerY - bounds.height * 0.2, 0,
+            centerX, centerY, Math.max(bounds.width, bounds.height) / 2
+        );
+        bodyGradient.addColorStop(0, this.candyColor);
+        bodyGradient.addColorStop(0.7, this.wrapperColor);
+        bodyGradient.addColorStop(1, this.candyType.wrapper);
         
-        // Draw candy shine/highlight
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, bounds.width / 2, bounds.height / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw wrapper pattern/stripes on the bonbon
         ctx.fillStyle = this.accentColor;
         ctx.globalAlpha = 0.6;
-        ctx.fillRect(bounds.x + 4, bounds.y + 2, bounds.width - 8, 3);
-        ctx.globalAlpha = 1.0;
         
-        // Draw candy stripes or pattern
-        ctx.fillStyle = this.accentColor;
-        ctx.globalAlpha = 0.4;
-        for (let i = 0; i < 3; i++) {
-            const stripeY = bounds.y + 8 + i * 4;
-            ctx.fillRect(bounds.x + 4, stripeY, bounds.width - 8, 1);
+        // Diagonal stripes across the bonbon
+        for (let i = -1; i <= 1; i++) {
+            const stripeY = centerY + i * 6;
+            ctx.beginPath();
+            ctx.ellipse(centerX, stripeY, bounds.width / 2 - 2, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
         }
+        
+        // Draw highlight on bonbon
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = this.accentColor;
+        ctx.beginPath();
+        ctx.ellipse(centerX - bounds.width * 0.2, centerY - bounds.height * 0.2, bounds.width / 4, bounds.height / 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
         ctx.globalAlpha = 1.0;
         
+        // Draw wrapper twist lines
+        ctx.strokeStyle = this.wrapperColor;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.7;
+        
+        // Left twist lines
+        for (let i = 0; i < 3; i++) {
+            const lineY = centerY - 4 + i * 4;
+            ctx.beginPath();
+            ctx.moveTo(bounds.x - wrapperEndWidth + 1, lineY);
+            ctx.lineTo(bounds.x - 1, lineY);
+            ctx.stroke();
+        }
+        
+        // Right twist lines
+        for (let i = 0; i < 3; i++) {
+            const lineY = centerY - 4 + i * 4;
+            ctx.beginPath();
+            ctx.moveTo(bounds.x + bounds.width + 1, lineY);
+            ctx.lineTo(bounds.x + bounds.width + wrapperEndWidth - 1, lineY);
+            ctx.stroke();
+        }
+        
+        ctx.globalAlpha = 1.0;
         ctx.restore();
     }
     
