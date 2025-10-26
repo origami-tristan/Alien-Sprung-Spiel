@@ -775,11 +775,12 @@ class LevelManager {
         this.maxSpikeDistance = 250; // Maximum distance between spikes (increased)
         this.spikeHeightVariation = 10; // Height variation for spikes
         
-        // Mushroom generation settings
+        // Candy generation settings
         this.spikeCounter = 0; // Count spikes generated
-        this.spikesPerMushroom = 30; // Generate mushroom every 30 spikes
-        this.minMushroomDistance = 300; // Minimum distance between mushrooms
-        this.lastMushroomX = 0; // Track last mushroom position
+        this.spikesPerCandy = 30; // Generate candy every 30 spikes
+        this.candiesSpawned = 0; // Track how many candies we've spawned
+        this.minCandyDistance = 300; // Minimum distance between candies
+        this.lastCandyX = 0; // Track last candy position
         
         // Level progression settings
         this.difficultyMultiplier = 1.0;
@@ -884,7 +885,7 @@ class LevelManager {
         
         if (this.lastGeneratedX < generationThreshold) {
             const newSpikes = this.generateMoreSpikes(this.lastGeneratedX, generationThreshold);
-            const newMushrooms = this.generateMushrooms(this.lastGeneratedX, generationThreshold);
+            const newCandies = this.generateCandies(this.lastGeneratedX, generationThreshold);
             
             // Add new spikes to the game
             newSpikes.forEach(spikeData => {
@@ -893,12 +894,12 @@ class LevelManager {
             });
             
             this.lastGeneratedX = generationThreshold;
-            console.log(`Generated ${newSpikes.length} new spikes and ${newMushrooms.length} mushrooms ahead (total spikes: ${this.spikeCounter})`);
+            console.log(`Generated ${newSpikes.length} new spikes and ${newCandies.length} candies ahead (total spikes: ${this.spikeCounter})`);
             
-            return newMushrooms; // Return mushrooms to be added by GameEngine
+            return newCandies; // Return candies to be added by GameEngine
         }
         
-        return []; // No new mushrooms
+        return []; // No new candies
         
         // Remove spikes that are far behind the alien (cleanup)
         const cleanupThreshold = alienX - 500;
@@ -937,17 +938,22 @@ class LevelManager {
         return spikes;
     }
     
-    // Generate mushrooms in a given range
-    generateMushrooms(startX, endX) {
-        const mushrooms = [];
+    // Generate candies in a given range
+    generateCandies(startX, endX) {
+        const candies = [];
         
-        // Check if we should spawn a mushroom (every 30 spikes)
-        if (this.spikeCounter > 0 && this.spikeCounter % this.spikesPerMushroom === 0) {
-            // Find a good position for the mushroom within the range
-            const mushroomX = Math.max(startX, this.lastMushroomX + this.minMushroomDistance);
+        // Calculate how many candies we should have spawned by now
+        const expectedCandies = Math.floor(this.spikeCounter / this.spikesPerCandy);
+        
+        console.log(`🍬 Candy check: spikes=${this.spikeCounter}, expected=${expectedCandies}, spawned=${this.candiesSpawned}`);
+        
+        // Check if we need to spawn candies to catch up
+        while (this.candiesSpawned < expectedCandies) {
+            // Find a good position for the candy within the range
+            const candyX = Math.max(startX, this.lastCandyX + this.minCandyDistance);
             
             // Only spawn if we have enough space in the current range
-            if (mushroomX < endX - 100) {
+            if (candyX < endX - 100) {
                 // Random height - can be on ground or floating
                 const heightOptions = [
                     this.groundLevel - 30,  // On ground
@@ -956,20 +962,27 @@ class LevelManager {
                     this.groundLevel - 160  // High floating
                 ];
                 
-                const mushroomY = heightOptions[Math.floor(Math.random() * heightOptions.length)];
+                const candyY = heightOptions[Math.floor(Math.random() * heightOptions.length)];
                 
-                mushrooms.push({
-                    x: mushroomX + Math.random() * 100, // Some randomness in position
-                    y: mushroomY,
-                    isFloating: mushroomY < this.groundLevel - 40 // Mark as floating if above ground level
+                candies.push({
+                    x: candyX + Math.random() * 100, // Some randomness in position
+                    y: candyY,
+                    isFloating: candyY < this.groundLevel - 40 // Mark as floating if above ground level
                 });
                 
-                this.lastMushroomX = mushroomX;
-                console.log(`Mushroom spawned after ${this.spikeCounter} spikes at position ${Math.round(mushroomX)}`);
+                this.lastCandyX = candyX;
+                this.candiesSpawned++;
+                console.log(`🍬 Candy #${this.candiesSpawned} spawned after ${this.spikeCounter} spikes at position ${Math.round(candyX)}`);
+                
+                // Update position for next candy
+                startX = candyX + this.minCandyDistance;
+            } else {
+                console.log(`🍬 Candy spawn skipped - not enough space in range ${startX}-${endX}`);
+                break; // Can't spawn more in this range
             }
         }
         
-        return mushrooms;
+        return candies;
     }
     
     // Generate spike positions with proper spacing
@@ -1128,7 +1141,8 @@ class LevelManager {
         this.currentLevel = 1;
         this.difficultyMultiplier = 1.0;
         this.spikeCounter = 0; // Reset spike counter
-        this.lastMushroomX = 0; // Reset mushroom position
+        this.candiesSpawned = 0; // Reset candy counter
+        this.lastCandyX = 0; // Reset candy position
         console.log('Reset to level 1');
         return this.generateLevel(1);
     }
@@ -1340,13 +1354,13 @@ class LevelManager {
     }
 }
 
-// Mushroom class - Power-up that gives extra life
-class Mushroom {
+// Candy class - Power-up that gives extra life
+class Candy {
     constructor(x, y, isFloating = false) {
         // Position and dimensions
         this.position = { x: Number(x), y: Number(y) };
-        this.width = 25;
-        this.height = 30;
+        this.width = 20;
+        this.height = 25;
         this.baseY = Number(y); // Store original Y position
         
         // Floating properties
@@ -1354,22 +1368,32 @@ class Mushroom {
         this.floatAmplitude = isFloating ? 8 : 2; // Larger movement if floating
         this.floatSpeed = isFloating ? 1.5 : 2; // Different speeds
         
-        // Visual properties
-        this.capColor = isFloating ? '#ff8a8a' : '#ff6b6b'; // Lighter color if floating
-        this.stemColor = '#f9f9f9'; // White stem
-        this.spotColor = '#ffffff'; // White spots
+        // Visual properties - different candy types
+        const candyTypes = [
+            { wrapper: '#ff4444', candy: '#ffaaaa', accent: '#ffffff' }, // Red candy
+            { wrapper: '#44ff44', candy: '#aaffaa', accent: '#ffffff' }, // Green candy
+            { wrapper: '#4444ff', candy: '#aaaaff', accent: '#ffffff' }, // Blue candy
+            { wrapper: '#ffaa00', candy: '#ffdd88', accent: '#ffffff' }, // Orange candy
+            { wrapper: '#ff44ff', candy: '#ffaaff', accent: '#ffffff' }  // Pink candy
+        ];
+        
+        this.candyType = candyTypes[Math.floor(Math.random() * candyTypes.length)];
+        this.wrapperColor = this.candyType.wrapper;
+        this.candyColor = this.candyType.candy;
+        this.accentColor = this.candyType.accent;
         
         // Animation properties
         this.animationTimer = 0;
         this.bobOffset = 0; // For gentle bobbing animation
         this.glowIntensity = 0;
+        this.rotationAngle = 0; // For spinning animation
         
         // Power-up properties
         this.isCollected = false;
         this.lifeBonus = 1;
-        this.scoreBonus = isFloating ? 75 : 50; // More points for floating mushrooms
+        this.scoreBonus = isFloating ? 75 : 50; // More points for floating candies
         
-        console.log(`${isFloating ? 'Floating' : 'Ground'} mushroom created at (${x}, ${y})`);
+        console.log(`${isFloating ? 'Floating' : 'Ground'} candy created at (${x}, ${y})`);
     }
     
     // Get collision boundaries
@@ -1404,7 +1428,7 @@ class Mushroom {
                myBounds.y + myBounds.height > otherBounds.y;
     }
     
-    // Update mushroom animation
+    // Update candy animation
     update(deltaTime) {
         if (this.isCollected) return;
         
@@ -1414,24 +1438,27 @@ class Mushroom {
         // Floating/bobbing animation
         this.bobOffset = Math.sin(this.animationTimer * this.floatSpeed) * this.floatAmplitude;
         
-        // Update actual position for floating mushrooms
+        // Update actual position for floating candies
         this.position.y = this.baseY + this.bobOffset;
         
-        // Pulsing glow effect (stronger for floating mushrooms)
+        // Spinning animation
+        this.rotationAngle += deltaTime * 2; // Rotate 2 radians per second
+        
+        // Pulsing glow effect (stronger for floating candies)
         const glowSpeed = this.isFloating ? 6 : 4;
         this.glowIntensity = (Math.sin(this.animationTimer * glowSpeed) + 1) / 2;
     }
     
-    // Collect the mushroom
+    // Collect the candy
     collect() {
         if (this.isCollected) return false;
         
         this.isCollected = true;
-        console.log('Mushroom collected! +1 Life');
+        console.log('Candy collected! +1 Life');
         return true;
     }
     
-    // Render the mushroom
+    // Render the candy
     render(ctx) {
         if (this.isCollected) return;
         
@@ -1439,79 +1466,82 @@ class Mushroom {
         
         // Validate bounds
         if (!bounds || isNaN(bounds.x) || isNaN(bounds.y)) {
-            console.warn('Invalid mushroom bounds:', bounds);
+            console.warn('Invalid candy bounds:', bounds);
             return;
         }
         
         ctx.save();
         
-        // Draw glow effect (stronger for floating mushrooms)
+        // Apply rotation for spinning effect
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate(this.rotationAngle);
+        ctx.translate(-centerX, -centerY);
+        
+        // Draw glow effect (stronger for floating candies)
         const glowAlpha = this.isFloating ? 0.5 : 0.3;
         const glowSize = this.isFloating ? 8 : 6;
         
         if (this.glowIntensity > 0.5) {
-            ctx.fillStyle = `rgba(255, 107, 107, ${(this.glowIntensity - 0.5) * glowAlpha})`;
+            ctx.fillStyle = `${this.wrapperColor}${Math.floor((this.glowIntensity - 0.5) * glowAlpha * 255).toString(16).padStart(2, '0')}`;
             ctx.fillRect(bounds.x - glowSize/2, bounds.y - glowSize/2, bounds.width + glowSize, bounds.height + glowSize);
         }
         
-        // Draw floating particles for floating mushrooms
+        // Draw floating sparkles for floating candies
         if (this.isFloating) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${this.glowIntensity * 0.6})`;
-            for (let i = 0; i < 3; i++) {
-                const particleX = bounds.x + Math.random() * bounds.width;
-                const particleY = bounds.y - 10 - Math.random() * 15;
-                ctx.fillRect(particleX, particleY, 1, 1);
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.glowIntensity * 0.8})`;
+            for (let i = 0; i < 4; i++) {
+                const sparkleX = bounds.x + Math.random() * bounds.width;
+                const sparkleY = bounds.y - 10 - Math.random() * 15;
+                const sparkleSize = 1 + Math.random();
+                ctx.fillRect(sparkleX, sparkleY, sparkleSize, sparkleSize);
             }
         }
         
-        // Draw mushroom stem
-        ctx.fillStyle = this.stemColor;
-        const stemWidth = 8;
-        const stemHeight = 15;
-        const stemX = bounds.x + (bounds.width - stemWidth) / 2;
-        const stemY = bounds.y + bounds.height - stemHeight;
-        ctx.fillRect(stemX, stemY, stemWidth, stemHeight);
+        // Draw candy wrapper (outer layer)
+        ctx.fillStyle = this.wrapperColor;
+        ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
         
-        // Draw mushroom cap
-        ctx.fillStyle = this.capColor;
-        const capHeight = 18;
-        ctx.fillRect(bounds.x + 2, bounds.y, bounds.width - 4, capHeight);
+        // Draw candy body (inner layer)
+        ctx.fillStyle = this.candyColor;
+        const innerMargin = 3;
+        ctx.fillRect(bounds.x + innerMargin, bounds.y + innerMargin, 
+                    bounds.width - innerMargin * 2, bounds.height - innerMargin * 2);
         
-        // Draw rounded cap top
-        ctx.beginPath();
-        ctx.arc(bounds.x + bounds.width / 2, bounds.y + 8, (bounds.width - 4) / 2, Math.PI, 0);
-        ctx.fill();
+        // Draw wrapper twist marks on sides
+        ctx.fillStyle = this.wrapperColor;
+        const twistWidth = 2;
+        ctx.fillRect(bounds.x, bounds.y + 5, twistWidth, bounds.height - 10);
+        ctx.fillRect(bounds.x + bounds.width - twistWidth, bounds.y + 5, twistWidth, bounds.height - 10);
         
-        // Draw white spots on cap
-        ctx.fillStyle = this.spotColor;
-        const spots = [
-            { x: bounds.x + 6, y: bounds.y + 6, size: 3 },
-            { x: bounds.x + 15, y: bounds.y + 4, size: 2 },
-            { x: bounds.x + 12, y: bounds.y + 12, size: 2 },
-            { x: bounds.x + 18, y: bounds.y + 10, size: 1 }
-        ];
+        // Draw candy shine/highlight
+        ctx.fillStyle = this.accentColor;
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(bounds.x + 4, bounds.y + 2, bounds.width - 8, 3);
+        ctx.globalAlpha = 1.0;
         
-        spots.forEach(spot => {
-            ctx.beginPath();
-            ctx.arc(spot.x, spot.y, spot.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        
-        // Draw highlight on cap
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.fillRect(bounds.x + 4, bounds.y + 2, bounds.width - 12, 4);
+        // Draw candy stripes or pattern
+        ctx.fillStyle = this.accentColor;
+        ctx.globalAlpha = 0.4;
+        for (let i = 0; i < 3; i++) {
+            const stripeY = bounds.y + 8 + i * 4;
+            ctx.fillRect(bounds.x + 4, stripeY, bounds.width - 8, 1);
+        }
+        ctx.globalAlpha = 1.0;
         
         ctx.restore();
     }
     
-    // Get mushroom info for debugging
+    // Get candy info for debugging
     getInfo() {
         return {
             position: { ...this.position },
             dimensions: { width: this.width, height: this.height },
             isCollected: this.isCollected,
             lifeBonus: this.lifeBonus,
-            scoreBonus: this.scoreBonus
+            scoreBonus: this.scoreBonus,
+            candyType: this.candyType
         };
     }
 }
@@ -2242,9 +2272,9 @@ class GameEngine {
             this.renderer.camera.x = Math.max(0, this.renderer.camera.x);
         }
         
-        // Create spike obstacles and mushrooms arrays
+        // Create spike obstacles and candies arrays
         this.spikeObstacles = [];
-        this.mushrooms = [];
+        this.candies = [];
         this.currentLevelConfig = null;
         this.generateCurrentLevel();
         
@@ -2362,12 +2392,12 @@ class GameEngine {
                 
                 // Update endless level generation
                 if (this.levelManager && this.levelManager.isEndlessMode) {
-                    const newMushrooms = this.levelManager.updateEndlessLevel(this.alienCharacter.position.x, this.spikeObstacles);
+                    const newCandies = this.levelManager.updateEndlessLevel(this.alienCharacter.position.x, this.spikeObstacles);
                     
-                    // Add new mushrooms to the game
-                    newMushrooms.forEach(mushroomData => {
-                        const mushroom = new Mushroom(mushroomData.x, mushroomData.y, mushroomData.isFloating);
-                        this.mushrooms.push(mushroom);
+                    // Add new candies to the game
+                    newCandies.forEach(candyData => {
+                        const candy = new Candy(candyData.x, candyData.y, candyData.isFloating);
+                        this.candies.push(candy);
                     });
                 }
                 
@@ -2386,8 +2416,8 @@ class GameEngine {
                     this.triggerGameOver();
                 }
                 
-                // Check mushroom collisions
-                this.checkMushroomCollisions();
+                // Check candy collisions
+                this.checkCandyCollisions();
                 
                 // Check level completion
                 if (this.levelManager.checkLevelCompletion(this.alienCharacter.position)) {
@@ -2395,9 +2425,9 @@ class GameEngine {
                 }
             }
             
-            // Update spike obstacles and mushrooms
+            // Update spike obstacles and candies
             this.updateSpikes(deltaTime);
-            this.updateMushrooms(deltaTime);
+            this.updateCandies(deltaTime);
             
             // Update visual effects
             if (this.screenShake > 0) {
@@ -2468,12 +2498,12 @@ class GameEngine {
             this.gameState.currentState === GAME_STATES.PAUSED ||
             this.gameState.currentState === GAME_STATES.GAME_OVER ||
             this.gameState.currentState === GAME_STATES.VICTORY) {
-            // Debug: Log spike and mushroom count
+            // Debug: Log spike and candy count
             if (this.frameCount % 60 === 0) { // Log every second
-                console.log(`Rendering ${this.spikeObstacles.length} spikes and ${this.mushrooms.length} mushrooms`);
+                console.log(`Rendering ${this.spikeObstacles.length} spikes and ${this.candies.length} candies`);
             }
             this.renderSpikes();
-            this.renderMushrooms();
+            this.renderCandies();
             // No fixed goal in endless mode
         }
         
@@ -2947,7 +2977,7 @@ class GameEngine {
         
         // Reset level manager and regenerate level
         this.levelManager.resetToLevel1();
-        this.mushrooms = []; // Clear all mushrooms
+        this.candies = []; // Clear all candies
         this.generateCurrentLevel();
         
         // Start playing again
@@ -3184,16 +3214,16 @@ class GameEngine {
         });
     }
     
-    // Update all mushrooms
-    updateMushrooms(deltaTime) {
-        this.mushrooms.forEach(mushroom => {
-            mushroom.update(deltaTime);
+    // Update all candies
+    updateCandies(deltaTime) {
+        this.candies.forEach(candy => {
+            candy.update(deltaTime);
         });
         
-        // Clean up collected mushrooms and old ones
+        // Clean up collected candies and old ones
         const cleanupThreshold = this.alienCharacter.position.x - 500;
-        this.mushrooms = this.mushrooms.filter(mushroom => 
-            !mushroom.isCollected && mushroom.position.x > cleanupThreshold
+        this.candies = this.candies.filter(candy => 
+            !candy.isCollected && candy.position.x > cleanupThreshold
         );
     }
     
@@ -3245,26 +3275,26 @@ class GameEngine {
         return false;
     }
     
-    // Check collisions between alien and mushrooms
-    checkMushroomCollisions() {
+    // Check collisions between alien and candies
+    checkCandyCollisions() {
         if (!this.alienCharacter || !this.physicsEngine) return;
         
         const alienBounds = this.alienCharacter.getCollisionBounds();
         
-        for (const mushroom of this.mushrooms) {
-            if (mushroom.checkCollision(alienBounds)) {
-                if (mushroom.collect()) {
+        for (const candy of this.candies) {
+            if (candy.checkCollision(alienBounds)) {
+                if (candy.collect()) {
                     // Add life and score
-                    this.gameState.lives += mushroom.lifeBonus;
-                    this.addScore(mushroom.scoreBonus);
+                    this.gameState.lives += candy.lifeBonus;
+                    this.addScore(candy.scoreBonus);
                     
                     // Visual feedback
                     this.renderer.setCameraShake(2, 0.3);
                     
-                    console.log(`Mushroom collected! Lives: ${this.gameState.lives}, Score bonus: ${mushroom.scoreBonus}`);
+                    console.log(`Candy collected! Lives: ${this.gameState.lives}, Score bonus: ${candy.scoreBonus}`);
                     
                     // Show collection message
-                    updateGameStatus(`+1 Leben! +${mushroom.scoreBonus} Punkte`, 'victory');
+                    updateGameStatus(`+1 Leben! +${candy.scoreBonus} Punkte`, 'victory');
                     setTimeout(() => {
                         if (this.gameState.currentState === GAME_STATES.PLAYING) {
                             updateGameStatus('', '');
@@ -3336,23 +3366,23 @@ class GameEngine {
         });
     }
     
-    // Render all mushrooms
-    renderMushrooms() {
-        this.mushrooms.forEach((mushroom, index) => {
-            if (!mushroom.isCollected) {
+    // Render all candies
+    renderCandies() {
+        this.candies.forEach((candy, index) => {
+            if (!candy.isCollected) {
                 // Simple debug rendering first
-                const debugColor = mushroom.isFloating ? '#ff8a8a' : '#ff6b6b';
+                const debugColor = candy.isFloating ? '#ffaa88' : '#ff8844';
                 this.ctx.fillStyle = debugColor;
-                this.ctx.fillRect(mushroom.position.x, mushroom.position.y, mushroom.width, mushroom.height);
+                this.ctx.fillRect(candy.position.x, candy.position.y, candy.width, candy.height);
                 
                 // Debug text
                 this.ctx.fillStyle = '#ffffff';
                 this.ctx.font = '8px Arial';
-                const label = mushroom.isFloating ? `F${index}` : `M${index}`;
-                this.ctx.fillText(label, mushroom.position.x, mushroom.position.y - 2);
+                const label = candy.isFloating ? `F${index}` : `C${index}`;
+                this.ctx.fillText(label, candy.position.x, candy.position.y - 2);
                 
                 // Original rendering
-                mushroom.render(this.ctx);
+                candy.render(this.ctx);
             }
         });
     }

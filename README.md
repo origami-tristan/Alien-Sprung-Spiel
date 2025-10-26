@@ -13,7 +13,7 @@ Das Alien Sprung Spiel ist ein endloser Plattformsprung-Titel, bei dem der Spiel
 
 - **Endloses Gameplay**: Prozedural generierte Level mit steigender Schwierigkeit
 - **Physik-Engine**: Realistische Sprung- und Gravitationsmechanik
-- **Power-ups**: Sammelbare Pilze für zusätzliche Leben und Punkte
+- **Power-ups**: Sammelbare Süßigkeiten für zusätzliche Leben und Punkte
 - **Touch-Unterstützung**: Vollständig kompatibel mit Tablets und Smartphones
 - **Responsive Design**: Passt sich verschiedenen Bildschirmgrößen an
 - **Deutsche Lokalisierung**: Vollständig ins Deutsche übersetzte Benutzeroberfläche
@@ -41,7 +41,7 @@ Das Spiel wurde mit **Kiro IDE** entwickelt und folgt einer modularen Architektu
 
 - **AlienCharacter**: Spieler-Charakter mit Animationen und Zustandsverwaltung
 - **SpikeObstacle**: Gefährliche Hindernisse mit visuellen Effekten
-- **Mushroom**: Sammelbare Power-ups mit Floating-Animationen
+- **Candy**: Sammelbare Power-ups mit Floating-Animationen und Rotations-Effekten
 
 ### Technologie-Stack
 
@@ -115,8 +115,8 @@ Das Spiel kann auch direkt durch Öffnen der `index.html` in einem modernen Brow
 
 ### Power-up System
 
-- **Boden-Pilze**: Standardmäßige Sammelobjekte (50 Punkte, +1 Leben)
-- **Schwebende Pilze**: Seltene, wertvollere Varianten (75 Punkte, +1 Leben)
+- **Boden-Süßigkeiten**: Standardmäßige Sammelobjekte (50 Punkte, +1 Leben)
+- **Schwebende Süßigkeiten**: Seltene, wertvollere Varianten (75 Punkte, +1 Leben)
 - **Partikel-Effekte**: Visuelle Feedback-Systeme für Sammelaktionen
 
 ## 🧪 Testing
