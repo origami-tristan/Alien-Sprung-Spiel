@@ -955,19 +955,12 @@ class LevelManager {
         
         // Check if it's time to spawn a candy (countdown reached 0 or below)
         if (this.spikesUntilNextCandy <= 0) {
-            // Find a good position for the candy - use a wider search area
-            let candyX = Math.max(startX, this.lastCandyX + this.minCandyDistance);
+            // Calculate candy position - place it ahead of current generation area
+            let candyX = Math.max(endX + 50, this.lastCandyX + this.minCandyDistance);
             
-            // If the calculated position is outside our range, try to place it within the range
-            if (candyX > endX - 50) {
-                // Try to place it earlier in the range if there's space
-                candyX = Math.max(startX, endX - 200);
-            }
-            
-            // If we still can't fit it, defer to next generation cycle but expand search
-            if (candyX > endX - 50) {
-                console.log(`🍬 Candy spawn deferred - will try in next cycle`);
-                return candies; // Return empty, try again next time
+            // If that's too close to last candy, place it further ahead
+            if (candyX < this.lastCandyX + this.minCandyDistance) {
+                candyX = this.lastCandyX + this.minCandyDistance;
             }
             
             // Random height - can be on ground or floating
@@ -991,7 +984,7 @@ class LevelManager {
             // Reset countdown to new random interval
             this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy();
             
-            console.log(`🍬 Candy spawned at ${Math.round(candyX)} after ${this.spikeCounter} spikes! Next candy in ${this.spikesUntilNextCandy} spikes`);
+            console.log(`🍬 Candy spawned at ${Math.round(candyX)} after ${this.spikeCounter} spikes! Next candy in ${this.spikesUntilNextCandy} spikes (placed ahead of generation area)`);
         }
         
         return candies;
