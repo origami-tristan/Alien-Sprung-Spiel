@@ -67,6 +67,11 @@ class Renderer {
         this.particles = [];
         this.screenEffects = [];
         
+        // Background animations
+        this.ufos = [];
+        this.shootingStars = [];
+        this.backgroundAnimationTimer = 0;
+        
         // Performance tracking
         this.drawCalls = 0;
         this.lastFrameDrawCalls = 0;
@@ -178,6 +183,9 @@ class Renderer {
             particle.update(deltaTime);
             return particle.life > 0;
         });
+        
+        // Update background animations
+        this.updateBackgroundAnimations(deltaTime);
     }
     
     // Render scrolling ground
@@ -240,6 +248,9 @@ class Renderer {
             }
         }
         this.drawCalls++;
+        
+        // Render background animations
+        this.renderBackgroundAnimations();
     }
     
     // Render planets in the background
@@ -349,6 +360,142 @@ class Renderer {
         const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - Math.floor(255 * amount));
         const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - Math.floor(255 * amount));
         return `rgb(${r}, ${g}, ${b})`;
+    }
+    
+    // Update background animations
+    updateBackgroundAnimations(deltaTime) {
+        this.backgroundAnimationTimer += deltaTime;
+        
+        // Randomly spawn UFOs (every 8-15 seconds)
+        if (Math.random() < 0.002 && this.ufos.length < 3) {
+            this.spawnUFO();
+        }
+        
+        // Randomly spawn shooting stars (every 3-8 seconds)
+        if (Math.random() < 0.005 && this.shootingStars.length < 5) {
+            this.spawnShootingStar();
+        }
+        
+        // Update UFOs
+        this.ufos = this.ufos.filter(ufo => {
+            ufo.angle += ufo.speed * deltaTime;
+            ufo.life -= deltaTime;
+            return ufo.life > 0;
+        });
+        
+        // Update shooting stars
+        this.shootingStars = this.shootingStars.filter(star => {
+            star.x += star.velocityX * deltaTime * 60;
+            star.y += star.velocityY * deltaTime * 60;
+            star.life -= deltaTime;
+            return star.life > 0 && star.x < this.canvas.width + 100;
+        });
+    }
+    
+    // Spawn a UFO that circles in the sky
+    spawnUFO() {
+        const ufo = {
+            centerX: Math.random() * this.canvas.width,
+            centerY: 50 + Math.random() * 100, // Upper part of screen
+            radius: 30 + Math.random() * 20,
+            angle: Math.random() * Math.PI * 2,
+            speed: 0.5 + Math.random() * 1.5, // radians per second
+            life: 10 + Math.random() * 15, // 10-25 seconds
+            emoji: Math.random() < 0.5 ? '🛸' : '👽'
+        };
+        this.ufos.push(ufo);
+        console.log('UFO spawned! 🛸');
+    }
+    
+    // Spawn a shooting star
+    spawnShootingStar() {
+        const star = {
+            x: -50,
+            y: Math.random() * (this.canvas.height * 0.4), // Upper 40% of screen
+            velocityX: 200 + Math.random() * 300, // pixels per second
+            velocityY: 50 + Math.random() * 100,
+            life: 3 + Math.random() * 2, // 3-5 seconds
+            trail: []
+        };
+        this.shootingStars.push(star);
+        console.log('Shooting star spawned! ⭐');
+    }
+    
+    // Render background animations
+    renderBackgroundAnimations() {
+        this.ctx.save();
+        
+        // Render UFOs
+        this.ufos.forEach(ufo => {
+            const x = ufo.centerX + Math.cos(ufo.angle) * ufo.radius;
+            const y = ufo.centerY + Math.sin(ufo.angle) * ufo.radius * 0.3; // Elliptical orbit
+            
+            // UFO glow effect
+            const glowGradient = this.ctx.createRadialGradient(x, y, 0, x, y, 15);
+            glowGradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
+            glowGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            this.ctx.fillStyle = glowGradient;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 15, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // UFO emoji
+            this.ctx.font = '20px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(ufo.emoji, x, y);
+            
+            // UFO trail effect
+            this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            const trailX = ufo.centerX + Math.cos(ufo.angle - 0.5) * ufo.radius;
+            const trailY = ufo.centerY + Math.sin(ufo.angle - 0.5) * ufo.radius * 0.3;
+            this.ctx.moveTo(trailX, trailY);
+            this.ctx.lineTo(x, y);
+            this.ctx.stroke();
+        });
+        
+        // Render shooting stars
+        this.shootingStars.forEach(star => {
+            // Add current position to trail
+            star.trail.push({ x: star.x, y: star.y });
+            if (star.trail.length > 8) {
+                star.trail.shift(); // Keep trail length manageable
+            }
+            
+            // Draw trail
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            star.trail.forEach((point, index) => {
+                const alpha = (index / star.trail.length) * 0.6;
+                this.ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                if (index === 0) {
+                    this.ctx.moveTo(point.x, point.y);
+                } else {
+                    this.ctx.lineTo(point.x, point.y);
+                }
+            });
+            this.ctx.stroke();
+            
+            // Draw shooting star
+            this.ctx.font = '16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('⭐', star.x, star.y);
+            
+            // Sparkle effect around shooting star
+            for (let i = 0; i < 3; i++) {
+                const sparkleX = star.x + (Math.random() - 0.5) * 20;
+                const sparkleY = star.y + (Math.random() - 0.5) * 20;
+                this.ctx.font = '8px Arial';
+                this.ctx.fillText('✨', sparkleX, sparkleY);
+            }
+        });
+        
+        this.ctx.restore();
+        this.drawCalls += this.ufos.length + this.shootingStars.length;
     }
     
     // Render text with outline
