@@ -777,9 +777,8 @@ class LevelManager {
         
         // Candy generation settings
         this.spikeCounter = 0; // Count spikes generated
-        this.spikesPerCandy = 30; // Generate candy every 30 spikes
-        this.candiesSpawned = 0; // Track how many candies we've spawned
-        this.minCandyDistance = 200; // Minimum distance between candies (reduced for better spawning)
+        this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy(); // Random spikes until next candy
+        this.minCandyDistance = 150; // Minimum distance between candies
         this.lastCandyX = 0; // Track last candy position
         
         // Level progression settings
@@ -793,6 +792,11 @@ class LevelManager {
         this.safetyMargin = 5; // Extra pixels for safety
         
         console.log('LevelManager initialized in endless mode');
+    }
+    
+    // Get random number of spikes until next candy (10-20 spikes)
+    getRandomSpikesForNextCandy() {
+        return 10 + Math.floor(Math.random() * 11); // 10-20 spikes
     }
     
     // Generate initial level configuration
@@ -884,8 +888,11 @@ class LevelManager {
         const generationThreshold = alienX + this.spikeGenerationDistance;
         
         if (this.lastGeneratedX < generationThreshold) {
+            const oldLastGenerated = this.lastGeneratedX;
             const newSpikes = this.generateMoreSpikes(this.lastGeneratedX, generationThreshold);
-            const newCandies = this.generateCandies(this.lastGeneratedX, generationThreshold);
+            
+            // Generate candies using the full range, not the updated lastGeneratedX
+            const newCandies = this.generateCandies(oldLastGenerated, generationThreshold);
             
             // Add new spikes to the game
             newSpikes.forEach(spikeData => {
@@ -942,50 +949,47 @@ class LevelManager {
     generateCandies(startX, endX) {
         const candies = [];
         
-        // Calculate how many candies we should have spawned by now
-        const expectedCandies = Math.floor(this.spikeCounter / this.spikesPerCandy);
+        console.log(`🍬 Candy check: spikes=${this.spikeCounter}, spikesUntilNext=${this.spikesUntilNextCandy}, range=${Math.round(startX)}-${Math.round(endX)} (${Math.round(endX - startX)}px)`);
         
-        console.log(`🍬 Candy check: spikes=${this.spikeCounter}, expected=${expectedCandies}, spawned=${this.candiesSpawned}, range=${Math.round(startX)}-${Math.round(endX)}`);
-        
-        // Check if we need to spawn candies to catch up
-        while (this.candiesSpawned < expectedCandies) {
-            // Calculate candy position - be more flexible with positioning
-            let candyX;
+        // Check if it's time to spawn a candy
+        if (this.spikeCounter >= this.spikesUntilNextCandy) {
+            // Find a good position for the candy - use a wider search area
+            let candyX = Math.max(startX, this.lastCandyX + this.minCandyDistance);
             
-            // If we haven't spawned any candies yet, or if there's enough space, use normal positioning
-            if (this.candiesSpawned === 0 || (this.lastCandyX + this.minCandyDistance) < endX - 50) {
-                candyX = Math.max(startX + 50, this.lastCandyX + this.minCandyDistance);
-            } else {
-                // If normal positioning doesn't work, place it anywhere in the current range
-                candyX = startX + 50 + Math.random() * Math.max(50, (endX - startX - 100));
+            // If the calculated position is outside our range, try to place it within the range
+            if (candyX > endX - 50) {
+                // Try to place it earlier in the range if there's space
+                candyX = Math.max(startX, endX - 200);
             }
             
-            // Check if we have any space at all in the current range
-            if (candyX < endX - 50 && (endX - startX) > 100) {
-                // Random height - can be on ground or floating
-                const heightOptions = [
-                    this.groundLevel - 30,  // On ground
-                    this.groundLevel - 80,  // Low floating
-                    this.groundLevel - 120, // Medium floating
-                    this.groundLevel - 160  // High floating
-                ];
-                
-                const candyY = heightOptions[Math.floor(Math.random() * heightOptions.length)];
-                
-                candies.push({
-                    x: candyX,
-                    y: candyY,
-                    isFloating: candyY < this.groundLevel - 40 // Mark as floating if above ground level
-                });
-                
-                this.lastCandyX = candyX;
-                this.candiesSpawned++;
-                console.log(`🍬 Candy #${this.candiesSpawned} spawned after ${this.spikeCounter} spikes at position ${Math.round(candyX)}`);
-                break; // Only spawn one candy per call to avoid clustering
-            } else {
-                console.log(`🍬 Candy spawn deferred - range too small: ${Math.round(endX - startX)}px`);
-                break; // Can't spawn in this range, will try in next generation cycle
+            // If we still can't fit it, defer to next generation cycle but expand search
+            if (candyX > endX - 50) {
+                console.log(`🍬 Candy spawn deferred - will try in next cycle`);
+                return candies; // Return empty, try again next time
             }
+            
+            // Random height - can be on ground or floating
+            const heightOptions = [
+                this.groundLevel - 30,  // On ground
+                this.groundLevel - 80,  // Low floating
+                this.groundLevel - 120, // Medium floating
+                this.groundLevel - 160  // High floating
+            ];
+            
+            const candyY = heightOptions[Math.floor(Math.random() * heightOptions.length)];
+            
+            candies.push({
+                x: candyX,
+                y: candyY,
+                isFloating: candyY < this.groundLevel - 40 // Mark as floating if above ground level
+            });
+            
+            this.lastCandyX = candyX;
+            
+            // Reset counter and get new random interval
+            this.spikesUntilNextCandy = this.spikeCounter + this.getRandomSpikesForNextCandy();
+            
+            console.log(`🍬 Candy spawned at ${Math.round(candyX)} after ${this.spikeCounter} spikes! Next candy in ${this.spikesUntilNextCandy - this.spikeCounter} spikes`);
         }
         
         return candies;
@@ -1147,7 +1151,7 @@ class LevelManager {
         this.currentLevel = 1;
         this.difficultyMultiplier = 1.0;
         this.spikeCounter = 0; // Reset spike counter
-        this.candiesSpawned = 0; // Reset candy counter
+        this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy(); // Reset candy countdown
         this.lastCandyX = 0; // Reset candy position
         console.log('Reset to level 1');
         return this.generateLevel(1);
