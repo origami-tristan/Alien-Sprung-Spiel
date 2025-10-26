@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alien Sprung Spiel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>Alien Sprung Spiel</h1>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div class="game-info">
+            <div class="score">Punkte: <span id="score">0</span></div>
+            <div class="controls">
+                <p>Steuerung: Leertaste, Pfeil nach oben, Klick oder Berührung zum Springen</p>
+                <p>Charakter läuft automatisch - Drücke P zum Pausieren/Fortsetzen</p>
+                <p>📱 Touch/Tablet freundlich!</p>
+            </div>
+        </div>
+        <div class="game-status" id="gameStatus"></div>
+    </div>
+    <script src="game.js"></script>
+</body>
+
+</html>

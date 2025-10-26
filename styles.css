@@ -1,0 +1,142 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-container {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+h1 {
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    color: #00ff88;
+}
+
+#gameCanvas {
+    border: 3px solid #00ff88;
+    border-radius: 10px;
+    background: #000;
+    display: block;
+    margin: 0 auto 20px;
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+    touch-action: none; /* Prevent scrolling and zooming on touch */
+    user-select: none; /* Prevent text selection */
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.score {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.controls {
+    text-align: right;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.controls p {
+    margin: 2px 0;
+}
+
+.game-status {
+    font-size: 1.8em;
+    font-weight: bold;
+    margin-top: 15px;
+    min-height: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.game-status.game-over {
+    color: #ff4444;
+}
+
+.game-status.paused {
+    color: #ffaa00;
+}
+
+.game-status.victory {
+    color: #00ff88;
+}
+
+/* Responsive design */
+@media (max-width: 900px) {
+    .game-container {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        max-width: 800px;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .controls {
+        text-align: center;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    
+    .game-container {
+        padding: 10px;
+    }
+    
+    h1 {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+    }
+    
+    .score {
+        font-size: 1.2em;
+    }
+    
+    .controls {
+        font-size: 0.8em;
+    }
+    
+    .game-status {
+        font-size: 1.4em;
+    }
+}

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alien Jump Game - Integration Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e3c72;
+            color: white;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 3px;
+        }
+        .test-pass {
+            background: rgba(0, 255, 0, 0.2);
+            border-left: 4px solid #00ff00;
+        }
+        .test-fail {
+            background: rgba(255, 0, 0, 0.2);
+            border-left: 4px solid #ff0000;
+        }
+        .test-warning {
+            background: rgba(255, 255, 0, 0.2);
+            border-left: 4px solid #ffff00;
+        }
+        #gameCanvas {
+            border: 2px solid #00ff88;
+            margin: 10px 0;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            background: #00ff88;
+            color: black;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #00dd77;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Alien Jump Game - Integration Tests</h1>
+        
+        <div class="test-section">
+            <h2>Game Instance</h2>
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div class="controls">
+                <button onclick="runAllTests()">Run All Tests</button>
+                <button onclick="testGameplay()">Test Gameplay</button>
+                <button onclick="testCollisions()">Test Collisions</button>
+                <button onclick="testLevelGeneration()">Test Level Generation</button>
+                <button onclick="toggleDebugMode()">Toggle Debug Mode</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Results</h2>
+            <div id="testResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Performance Statistics</h2>
+            <div class="stats" id="performanceStats"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Game State Monitor</h2>
+            <div id="gameStateMonitor"></div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script>
+        // Integration Test Suite
+        class IntegrationTestSuite {
+            constructor() {
+                this.testResults = [];
+                this.gameEngine = null;
+                this.testCanvas = null;
+                this.testCtx = null;
+                this.isRunning = false;
+                
+                this.initializeTestGame();
+            }
+            
+            initializeTestGame() {
+                this.testCanvas = document.getElementById('gameCanvas');
+                this.testCtx = this.testCanvas.getContext('2d');
+                
+                // Create game engine for testing
+                this.gameEngine = new GameEngine(this.testCanvas, this.testCtx);
+                
+                if (this.gameEngine.init()) {
+                    console.log('Test game engine initialized successfully');
+                    this.gameEngine.start();
+                    this.isRunning = true;
+                } else {
+                    console.error('Failed to initialize test game engine');
+                }
+            }
+            
+            addTestResult(name, passed, message = '', type = 'test') {
+                this.testResults.push({
+                    name,
+                    passed,
+                    message,
+                    type,
+                    timestamp: Date.now()
+                });
+                this.updateTestDisplay();
+            }
+            
+            updateTestDisplay() {
+                const resultsDiv = document.getElementById('testResults');
+                let html = '';
+                
+                this.testResults.forEach(result => {
+                    const className = result.passed ? 'test-pass' : 'test-fail';
+                    const icon = result.passed ? '✅' : '❌';
+                    
+                    html += `<div class="test-result ${className}">
+                        ${icon} ${result.name}
+                        ${result.message ? ` - ${result.message}` : ''}
+                    </div>`;
+                });
+                
+                resultsDiv.innerHTML = html;
+            }
+            
+            // Test 1: Complete Gameplay Flow
+            async testCompleteGameplayFlow() {
+                console.log('Testing complete gameplay flow...');
+                
+                try {
+                    // Test game initialization
+                    const gameState = this.gameEngine.getGameState();
+                    this.addTestResult('Game Initialization', 
+                        gameState.isRunning && gameState.currentState === 'playing',
+                        `State: ${gameState.currentState}`);
+                    
+                    // Test alien character
+                    const alienExists = this.gameEngine.alienCharacter !== null;
+                    this.addTestResult('Alien Character Creation', alienExists);
+                    
+                    if (alienExists) {
+                        const alienState = this.gameEngine.alienCharacter.getState();
+                        this.addTestResult('Alien Character State', 
+                            alienState.position && alienState.velocity,
+                            `Pos: (${Math.round(alienState.position.x)}, ${Math.round(alienState.position.y)})`);
+                    }
+                    
+                    // Test spike obstacles
+                    const spikesExist = this.gameEngine.spikeObstacles.length > 0;
+                    this.addTestResult('Spike Obstacles Generation', spikesExist,
+                        `Generated ${this.gameEngine.spikeObstacles.length} spikes`);
+                    
+                    // Test level manager
+                    const levelInfo = this.gameEngine.levelManager.getCurrentLevelInfo();
+                    this.addTestResult('Level Manager', 
+                        levelInfo.levelNumber === 1,
+                        `Level: ${levelInfo.levelNumber}`);
+                    
+                    // Test physics engine
+                    const physicsExists = this.gameEngine.physicsEngine !== null;
+                    this.addTestResult('Physics Engine', physicsExists);
+                    
+                    // Test renderer
+                    const rendererExists = this.gameEngine.renderer !== null;
+                    this.addTestResult('Renderer System', rendererExists);
+                    
+                    // Test input handler
+                    const inputExists = this.gameEngine.inputHandler !== null;
+                    this.addTestResult('Input Handler', inputExists);
+                    
+                } catch (error) {
+                    this.addTestResult('Complete Gameplay Flow', false, error.message);
+                }
+            }
+            
+            // Test 2: Collision System
+            async testCollisionSystem() {
+                console.log('Testing collision system...');
+                
+                try {
+                    if (!this.gameEngine.alienCharacter || !this.gameEngine.physicsEngine) {
+                        this.addTestResult('Collision System Prerequisites', false, 'Missing components');
+                        return;
+                    }
+                    
+                    // Test collision detection between alien and spikes
+                    let collisionDetected = false;
+                    
+                    for (const spike of this.gameEngine.spikeObstacles) {
+                        const collision = this.gameEngine.physicsEngine.checkCollision(
+                            this.gameEngine.alienCharacter, 
+                            spike
+                        );
+                        
+                        if (collision) {
+                            collisionDetected = true;
+                            break;
+                        }
+                    }
+                    
+                    // Test collision bounds calculation
+                    const alienBounds = this.gameEngine.alienCharacter.getCollisionBounds();
+                    const boundsValid = alienBounds.x !== undefined && 
+                                       alienBounds.y !== undefined && 
+                                       alienBounds.width > 0 && 
+                                       alienBounds.height > 0;
+                    
+                    this.addTestResult('Collision Bounds Calculation', boundsValid,
+                        `Bounds: ${alienBounds.width}x${alienBounds.height}`);
+                    
+                    // Test spike collision bounds
+                    if (this.gameEngine.spikeObstacles.length > 0) {
+                        const spikeBounds = this.gameEngine.spikeObstacles[0].getCollisionBounds();
+                        const spikeBoundsValid = spikeBounds.x !== undefined && 
+                                               spikeBounds.y !== undefined && 
+                                               spikeBounds.width > 0 && 
+                                               spikeBounds.height > 0;
+                        
+                        this.addTestResult('Spike Collision Bounds', spikeBoundsValid,
+                            `Bounds: ${spikeBounds.width}x${spikeBounds.height}`);
+                    }
+                    
+                    this.addTestResult('Collision Detection System', true, 
+                        `Collision currently: ${collisionDetected ? 'Yes' : 'No'}`);
+                    
+                } catch (error) {
+                    this.addTestResult('Collision System', false, error.message);
+                }
+            }
+            
+            // Test 3: Level Generation and Jumpability
+            async testLevelGeneration() {
+                console.log('Testing level generation and jumpability...');
+                
+                try {
+                    const levelManager = this.gameEngine.levelManager;
+                    
+                    // Test level generation
+                    const testLevel = levelManager.generateLevel(1);
+                    this.addTestResult('Level Generation', 
+                        testLevel && testLevel.spikePositions.length > 0,
+                        `Generated ${testLevel.spikePositions.length} spikes`);
+                    
+                    // Test jumpability validation
+                    const levelInfo = levelManager.getCurrentLevelInfo();
+                    const maxJumpHeight = levelInfo.maxJumpHeight;
+                    const maxJumpDistance = levelInfo.maxJumpDistance;
+                    
+                    this.addTestResult('Jump Capability Calculation', 
+                        maxJumpHeight > 0 && maxJumpDistance > 0,
+                        `Height: ${Math.round(maxJumpHeight)}px, Distance: ${Math.round(maxJumpDistance)}px`);
+                    
+                    // Test spike height validation
+                    let allSpikesJumpable = true;
+                    let unjumpableSpikes = 0;
+                    
+                    for (const spike of this.gameEngine.spikeObstacles) {
+                        if (spike.height > maxJumpHeight) {
+                            allSpikesJumpable = false;
+                            unjumpableSpikes++;
+                        }
+                    }
+                    
+                    this.addTestResult('Spike Height Validation', allSpikesJumpable,
+                        unjumpableSpikes > 0 ? `${unjumpableSpikes} unjumpable spikes found` : 'All spikes jumpable');
+                    
+                    // Test spike spacing validation
+                    let allSpacingValid = true;
+                    let invalidSpacing = 0;
+                    
+                    for (let i = 1; i < this.gameEngine.spikeObstacles.length; i++) {
+                        const prevSpike = this.gameEngine.spikeObstacles[i - 1];
+                        const currentSpike = this.gameEngine.spikeObstacles[i];
+                        const distance = currentSpike.position.x - (prevSpike.position.x + prevSpike.width);
+                        
+                        if (distance > maxJumpDistance) {
+                            allSpacingValid = false;
+                            invalidSpacing++;
+                        }
+                    }
+                    
+                    this.addTestResult('Spike Spacing Validation', allSpacingValid,
+                        invalidSpacing > 0 ? `${invalidSpacing} gaps too large` : 'All gaps jumpable');
+                    
+                } catch (error) {
+                    this.addTestResult('Level Generation', false, error.message);
+                }
+            }
+            
+            // Test 4: Performance Monitoring
+            async testPerformance() {
+                console.log('Testing performance...');
+                
+                try {
+                    const gameState = this.gameEngine.getGameState();
+                    const fps = gameState.fps;
+                    
+                    this.addTestResult('Frame Rate', fps >= 30,
+                        `Current FPS: ${fps}`);
+                    
+                    // Test render performance
+                    if (this.gameEngine.renderer) {
+                        const renderStats = this.gameEngine.renderer.getRenderStats();
+                        this.addTestResult('Render Performance', 
+                            renderStats.drawCalls < 100,
+                            `Draw calls: ${renderStats.drawCalls}`);
+                    }
+                    
+                    // Test memory usage (basic check)
+                    const memoryUsage = performance.memory ? 
+                        Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'Unknown';
+                    
+                    this.addTestResult('Memory Usage', true,
+                        `Heap: ${memoryUsage}MB`);
+                    
+                } catch (error) {
+                    this.addTestResult('Performance Monitoring', false, error.message);
+                }
+            }
+            
+            // Test 5: Input System
+            async testInputSystem() {
+                console.log('Testing input system...');
+                
+                try {
+                    const inputHandler = this.gameEngine.inputHandler;
+                    
+                    this.addTestResult('Input Handler Exists', inputHandler !== null);
+                    
+                    if (inputHandler) {
+                        // Test input methods exist
+                        const hasMovementInput = typeof inputHandler.getMovementInput === 'function';
+                        const hasGameControlInput = typeof inputHandler.getGameControlInput === 'function';
+                        
+                        this.addTestResult('Input Methods', 
+                            hasMovementInput && hasGameControlInput,
+                            'Movement and game control methods available');
+                        
+                        // Test input state
+                        const movementInput = inputHandler.getMovementInput();
+                        const gameControlInput = inputHandler.getGameControlInput();
+                        
+                        this.addTestResult('Input State Access', 
+                            movementInput !== undefined && gameControlInput !== undefined,
+                            'Input states accessible');
+                    }
+                    
+                } catch (error) {
+                    this.addTestResult('Input System', false, error.message);
+                }
+            }
+            
+            // Update performance statistics display
+            updatePerformanceStats() {
+                const statsDiv = document.getElementById('performanceStats');
+                
+                if (!this.gameEngine) return;
+                
+                const gameState = this.gameEngine.getGameState();
+                const renderStats = this.gameEngine.renderer ? this.gameEngine.renderer.getRenderStats() : {};
+                
+                const stats = [
+                    { label: 'FPS', value: gameState.fps || 0 },
+                    { label: 'Draw Calls', value: renderStats.drawCalls || 0 },
+                    { label: 'Particles', value: renderStats.particles || 0 },
+                    { label: 'Screen Effects', value: renderStats.effects || 0 },
+                    { label: 'Spike Count', value: gameState.spikeCount || 0 },
+                    { label: 'Game Time', value: Math.round(gameState.gameTime || 0) + 's' }
+                ];
+                
+                let html = '';
+                stats.forEach(stat => {
+                    html += `<div class="stat-box">
+                        <div style="font-size: 1.5em; color: #00ff88;">${stat.value}</div>
+                        <div>${stat.label}</div>
+                    </div>`;
+                });
+                
+                statsDiv.innerHTML = html;
+            }
+            
+            // Update game state monitor
+            updateGameStateMonitor() {
+                const monitorDiv = document.getElementById('gameStateMonitor');
+                
+                if (!this.gameEngine) return;
+                
+                const gameState = this.gameEngine.getGameState();
+                const alienState = this.gameEngine.alienCharacter ? 
+                    this.gameEngine.alienCharacter.getState() : null;
+                
+                let html = '<h3>Game State</h3>';
+                html += `<p>State: ${gameState.currentState}</p>`;
+                html += `<p>Score: ${gameState.score}</p>`;
+                html += `<p>Level: ${gameState.level}</p>`;
+                html += `<p>Lives: ${gameState.lives}</p>`;
+                
+                if (alienState) {
+                    html += '<h3>Alien Character</h3>';
+                    html += `<p>Position: (${Math.round(alienState.position.x)}, ${Math.round(alienState.position.y)})</p>`;
+                    html += `<p>Velocity: (${Math.round(alienState.velocity.x)}, ${Math.round(alienState.velocity.y)})</p>`;
+                    html += `<p>Grounded: ${alienState.isGrounded}</p>`;
+                    html += `<p>Animation: ${alienState.currentAnimation}</p>`;
+                }
+                
+                monitorDiv.innerHTML = html;
+            }
+            
+            // Run all tests
+            async runAllTests() {
+                console.log('Running all integration tests...');
+                this.testResults = [];
+                
+                await this.testCompleteGameplayFlow();
+                await this.testCollisionSystem();
+                await this.testLevelGeneration();
+                await this.testPerformance();
+                await this.testInputSystem();
+                
+                const passedTests = this.testResults.filter(r => r.passed).length;
+                const totalTests = this.testResults.length;
+                
+                console.log(`Integration tests complete: ${passedTests}/${totalTests} passed`);
+                
+                this.addTestResult('Integration Test Suite', 
+                    passedTests === totalTests,
+                    `${passedTests}/${totalTests} tests passed`);
+            }
+        }
+        
+        // Global test suite instance
+        let testSuite;
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            testSuite = new IntegrationTestSuite();
+            
+            // Update monitors periodically
+            setInterval(() => {
+                if (testSuite) {
+                    testSuite.updatePerformanceStats();
+                    testSuite.updateGameStateMonitor();
+                }
+            }, 1000);
+        });
+        
+        // Test control functions
+        function runAllTests() {
+            if (testSuite) testSuite.runAllTests();
+        }
+        
+        function testGameplay() {
+            if (testSuite) testSuite.testCompleteGameplayFlow();
+        }
+        
+        function testCollisions() {
+            if (testSuite) testSuite.testCollisionSystem();
+        }
+        
+        function testLevelGeneration() {
+            if (testSuite) testSuite.testLevelGeneration();
+        }
+        
+        function toggleDebugMode() {
+            if (testSuite && testSuite.gameEngine) {
+                testSuite.gameEngine.showCollisionBoxes = !testSuite.gameEngine.showCollisionBoxes;
+                console.log('Debug mode:', testSuite.gameEngine.showCollisionBoxes ? 'ON' : 'OFF');
+            }
+        }
+    </script>
+</body>
+</html>

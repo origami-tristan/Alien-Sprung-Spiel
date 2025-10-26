@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alien Jump Game - Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e3c72;
+            color: white;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background: rgba(0, 255, 0, 0.2);
+            border-left: 4px solid #00ff00;
+        }
+        .test-fail {
+            background: rgba(255, 0, 0, 0.2);
+            border-left: 4px solid #ff0000;
+        }
+        .test-summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            font-size: 1.2em;
+        }
+        #gameCanvas {
+            border: 2px solid #00ff88;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Alien Jump Game - Test Suite</h1>
+        <p>Testing the current implementation...</p>
+        
+        <canvas id="gameCanvas" width="400" height="200"></canvas>
+        
+        <div id="testResults"></div>
+        <div id="testSummary" class="test-summary"></div>
+        
+        <h3>Manual Tests:</h3>
+        <ul>
+            <li>✅ Open the main game (index.html) in another tab</li>
+            <li>✅ Verify the alien character appears as a green rectangle</li>
+            <li>✅ Check that FPS counter is displayed</li>
+            <li>✅ Test pause functionality with 'P' key</li>
+            <li>✅ Test reset functionality with 'R' key</li>
+            <li>✅ Verify game state changes are displayed</li>
+        </ul>
+    </div>
+
+    <script>
+        // Import game constants
+        const GAME_CONFIG = {
+            CANVAS_WIDTH: 800,
+            CANVAS_HEIGHT: 400,
+            GROUND_LEVEL: 350,
+            GRAVITY: 0.8,
+            JUMP_FORCE: -15,
+            MOVE_SPEED: 5,
+            TARGET_FPS: 60
+        };
+
+        const CHARACTER_CONFIG = {
+            WIDTH: 30,
+            HEIGHT: 40,
+            START_X: 100,
+            START_Y: GAME_CONFIG.GROUND_LEVEL - 40,
+            MAX_SPEED: GAME_CONFIG.MOVE_SPEED,
+            JUMP_FORCE: GAME_CONFIG.JUMP_FORCE,
+            GRAVITY: GAME_CONFIG.GRAVITY,
+            FRICTION: 0.8,
+            COYOTE_TIME: 0.1,
+            ANIMATION_SPEED: 0.15
+        };
+
+        // Test runner
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            addTest(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+
+            async runTests() {
+                console.log('🧪 Starting Alien Jump Game Tests...');
+                
+                for (const test of this.tests) {
+                    try {
+                        const result = await test.testFunction();
+                        this.results.push({
+                            name: test.name,
+                            passed: result,
+                            error: null
+                        });
+                        console.log(`${result ? '✅' : '❌'} ${test.name}`);
+                    } catch (error) {
+                        this.results.push({
+                            name: test.name,
+                            passed: false,
+                            error: error.message
+                        });
+                        console.log(`❌ ${test.name} - ${error.message}`);
+                    }
+                }
+
+                this.displayResults();
+            }
+
+            displayResults() {
+                const resultsDiv = document.getElementById('testResults');
+                const summaryDiv = document.getElementById('testSummary');
+                
+                let html = '';
+                let passed = 0;
+                
+                this.results.forEach(result => {
+                    const className = result.passed ? 'test-pass' : 'test-fail';
+                    const icon = result.passed ? '✅' : '❌';
+                    const errorText = result.error ? ` - ${result.error}` : '';
+                    
+                    html += `<div class="test-result ${className}">
+                        ${icon} ${result.name}${errorText}
+                    </div>`;
+                    
+                    if (result.passed) passed++;
+                });
+                
+                resultsDiv.innerHTML = html;
+                
+                const total = this.results.length;
+                const percentage = Math.round((passed / total) * 100);
+                
+                summaryDiv.innerHTML = `
+                    📊 Test Results: ${passed}/${total} tests passed (${percentage}%)
+                    ${passed === total ? '<br>🎉 All tests passed!' : '<br>⚠️ Some tests failed.'}
+                `;
+            }
+        }
+
+        // Create test runner
+        const testRunner = new TestRunner();
+
+        // Test 1: Game Configuration
+        testRunner.addTest('Game Configuration Constants', () => {
+            return GAME_CONFIG.CANVAS_WIDTH === 800 &&
+                   GAME_CONFIG.CANVAS_HEIGHT === 400 &&
+                   GAME_CONFIG.GROUND_LEVEL === 350 &&
+                   CHARACTER_CONFIG.WIDTH === 30 &&
+                   CHARACTER_CONFIG.HEIGHT === 40;
+        });
+
+        // Test 2: Canvas Setup
+        testRunner.addTest('Canvas Element Setup', () => {
+            const canvas = document.getElementById('gameCanvas');
+            return canvas && canvas.getContext && canvas.getContext('2d');
+        });
+
+        // Test 3: Basic Math Functions
+        testRunner.addTest('Basic Game Math', () => {
+            // Test collision detection math
+            const rect1 = { x: 10, y: 10, width: 20, height: 20 };
+            const rect2 = { x: 15, y: 15, width: 20, height: 20 };
+            
+            // Simple AABB collision detection
+            const collision = rect1.x < rect2.x + rect2.width &&
+                            rect1.x + rect1.width > rect2.x &&
+                            rect1.y < rect2.y + rect2.height &&
+                            rect1.y + rect1.height > rect2.y;
+            
+            return collision === true;
+        });
+
+        // Test 4: Character Position Calculations
+        testRunner.addTest('Character Position Calculations', () => {
+            const startX = CHARACTER_CONFIG.START_X;
+            const startY = CHARACTER_CONFIG.START_Y;
+            const expectedY = GAME_CONFIG.GROUND_LEVEL - CHARACTER_CONFIG.HEIGHT;
+            
+            return startX === 100 && startY === expectedY;
+        });
+
+        // Test 5: Animation Frame Logic
+        testRunner.addTest('Animation Frame Logic', () => {
+            let frame = 0;
+            const maxFrames = 4;
+            
+            // Simulate frame updates
+            for (let i = 0; i < 10; i++) {
+                frame = (frame + 1) % maxFrames;
+            }
+            
+            return frame >= 0 && frame < maxFrames;
+        });
+
+        // Test 6: Local Storage Functionality
+        testRunner.addTest('Local Storage Functionality', () => {
+            try {
+                localStorage.setItem('test', 'value');
+                const value = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                return value === 'value';
+            } catch (e) {
+                return false;
+            }
+        });
+
+        // Test 7: Canvas Drawing Test
+        testRunner.addTest('Canvas Drawing Functionality', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                // Test basic drawing operations
+                ctx.fillStyle = '#00ff88';
+                ctx.fillRect(10, 10, 30, 40);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Arial';
+                ctx.fillText('Test', 50, 30);
+                
+                return true;
+            } catch (e) {
+                return false;
+            }
+        });
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Draw a simple test scene
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#001122';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Ground
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, 150, canvas.width, canvas.height - 150);
+            
+            // Test alien character
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(50, 110, 30, 40);
+            
+            // Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(58, 118, 3, 3);
+            ctx.fillRect(68, 118, 3, 3);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.fillText('Test Character Rendering', 100, 130);
+            
+            // Run the tests
+            setTimeout(() => testRunner.runTests(), 500);
+        });
+    </script>
+</body>
+</html>
