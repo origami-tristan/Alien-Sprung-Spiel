@@ -776,7 +776,8 @@ class LevelManager {
         this.spikeHeightVariation = 10; // Height variation for spikes
         
         // Mushroom generation settings
-        this.mushroomSpawnChance = 0.15; // 15% chance per spike area
+        this.spikeCounter = 0; // Count spikes generated
+        this.spikesPerMushroom = 30; // Generate mushroom every 30 spikes
         this.minMushroomDistance = 300; // Minimum distance between mushrooms
         this.lastMushroomX = 0; // Track last mushroom position
         
@@ -824,6 +825,9 @@ class LevelManager {
             const spike = this.generateSingleSpike(currentX);
             spikes.push(spike);
             
+            // Increment spike counter for initial spikes too
+            this.spikeCounter++;
+            
             // Calculate next spike position
             const spacing = this.minSpikeDistance + Math.random() * (this.maxSpikeDistance - this.minSpikeDistance);
             currentX += spacing;
@@ -832,7 +836,7 @@ class LevelManager {
         this.nextSpikeX = currentX;
         this.lastGeneratedX = endX;
         
-        console.log(`Generated ${spikes.length} initial spikes`);
+        console.log(`Generated ${spikes.length} initial spikes (total spike count: ${this.spikeCounter})`);
         return spikes;
     }
     
@@ -889,7 +893,7 @@ class LevelManager {
             });
             
             this.lastGeneratedX = generationThreshold;
-            console.log(`Generated ${newSpikes.length} new spikes and ${newMushrooms.length} mushrooms ahead`);
+            console.log(`Generated ${newSpikes.length} new spikes and ${newMushrooms.length} mushrooms ahead (total spikes: ${this.spikeCounter})`);
             
             return newMushrooms; // Return mushrooms to be added by GameEngine
         }
@@ -920,6 +924,9 @@ class LevelManager {
             const spike = this.generateSingleSpike(currentX);
             spikes.push(spike);
             
+            // Increment spike counter
+            this.spikeCounter++;
+            
             // Calculate next spike position with some randomness
             const baseSpacing = this.minSpikeDistance + Math.random() * (this.maxSpikeDistance - this.minSpikeDistance);
             const difficultySpacing = Math.max(0, baseSpacing - this.difficultyMultiplier * 10); // Closer spikes as difficulty increases
@@ -933,13 +940,14 @@ class LevelManager {
     // Generate mushrooms in a given range
     generateMushrooms(startX, endX) {
         const mushrooms = [];
-        let currentX = Math.max(startX, this.lastMushroomX + this.minMushroomDistance);
         
-        while (currentX < endX) {
-            // Random chance to spawn a mushroom
-            if (Math.random() < this.mushroomSpawnChance) {
-                const mushroomX = currentX + Math.random() * 100; // Some randomness in position
-                
+        // Check if we should spawn a mushroom (every 30 spikes)
+        if (this.spikeCounter > 0 && this.spikeCounter % this.spikesPerMushroom === 0) {
+            // Find a good position for the mushroom within the range
+            const mushroomX = Math.max(startX, this.lastMushroomX + this.minMushroomDistance);
+            
+            // Only spawn if we have enough space in the current range
+            if (mushroomX < endX - 100) {
                 // Random height - can be on ground or floating
                 const heightOptions = [
                     this.groundLevel - 30,  // On ground
@@ -951,15 +959,13 @@ class LevelManager {
                 const mushroomY = heightOptions[Math.floor(Math.random() * heightOptions.length)];
                 
                 mushrooms.push({
-                    x: mushroomX,
+                    x: mushroomX + Math.random() * 100, // Some randomness in position
                     y: mushroomY,
                     isFloating: mushroomY < this.groundLevel - 40 // Mark as floating if above ground level
                 });
                 
                 this.lastMushroomX = mushroomX;
-                currentX = mushroomX + this.minMushroomDistance;
-            } else {
-                currentX += 200; // Move forward and try again
+                console.log(`Mushroom spawned after ${this.spikeCounter} spikes at position ${Math.round(mushroomX)}`);
             }
         }
         
@@ -1121,6 +1127,8 @@ class LevelManager {
     resetToLevel1() {
         this.currentLevel = 1;
         this.difficultyMultiplier = 1.0;
+        this.spikeCounter = 0; // Reset spike counter
+        this.lastMushroomX = 0; // Reset mushroom position
         console.log('Reset to level 1');
         return this.generateLevel(1);
     }
