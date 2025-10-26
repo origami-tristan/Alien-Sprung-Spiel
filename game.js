@@ -777,7 +777,7 @@ class LevelManager {
         
         // Candy generation settings
         this.spikeCounter = 0; // Count spikes generated
-        this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy(); // Random spikes until next candy
+        this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy(); // Countdown to next candy
         this.minCandyDistance = 150; // Minimum distance between candies
         this.lastCandyX = 0; // Track last candy position
         
@@ -830,8 +830,9 @@ class LevelManager {
             const spike = this.generateSingleSpike(currentX);
             spikes.push(spike);
             
-            // Increment spike counter for initial spikes too
+            // Increment spike counter and decrement candy countdown for initial spikes too
             this.spikeCounter++;
+            this.spikesUntilNextCandy--;
             
             // Calculate next spike position
             const spacing = this.minSpikeDistance + Math.random() * (this.maxSpikeDistance - this.minSpikeDistance);
@@ -841,7 +842,7 @@ class LevelManager {
         this.nextSpikeX = currentX;
         this.lastGeneratedX = endX;
         
-        console.log(`Generated ${spikes.length} initial spikes (total spike count: ${this.spikeCounter})`);
+        console.log(`Generated ${spikes.length} initial spikes (total spike count: ${this.spikeCounter}, candy countdown: ${this.spikesUntilNextCandy})`);
         return spikes;
     }
     
@@ -932,8 +933,9 @@ class LevelManager {
             const spike = this.generateSingleSpike(currentX);
             spikes.push(spike);
             
-            // Increment spike counter
+            // Increment spike counter and decrement candy countdown
             this.spikeCounter++;
+            this.spikesUntilNextCandy--;
             
             // Calculate next spike position with some randomness
             const baseSpacing = this.minSpikeDistance + Math.random() * (this.maxSpikeDistance - this.minSpikeDistance);
@@ -949,10 +951,10 @@ class LevelManager {
     generateCandies(startX, endX) {
         const candies = [];
         
-        console.log(`🍬 Candy check: spikes=${this.spikeCounter}, spikesUntilNext=${this.spikesUntilNextCandy}, range=${Math.round(startX)}-${Math.round(endX)} (${Math.round(endX - startX)}px)`);
+        console.log(`🍬 Candy check: spikes=${this.spikeCounter}, countdown=${this.spikesUntilNextCandy}, range=${Math.round(startX)}-${Math.round(endX)} (${Math.round(endX - startX)}px)`);
         
-        // Check if it's time to spawn a candy
-        if (this.spikeCounter >= this.spikesUntilNextCandy) {
+        // Check if it's time to spawn a candy (countdown reached 0 or below)
+        if (this.spikesUntilNextCandy <= 0) {
             // Find a good position for the candy - use a wider search area
             let candyX = Math.max(startX, this.lastCandyX + this.minCandyDistance);
             
@@ -986,10 +988,10 @@ class LevelManager {
             
             this.lastCandyX = candyX;
             
-            // Reset counter and get new random interval
-            this.spikesUntilNextCandy = this.spikeCounter + this.getRandomSpikesForNextCandy();
+            // Reset countdown to new random interval
+            this.spikesUntilNextCandy = this.getRandomSpikesForNextCandy();
             
-            console.log(`🍬 Candy spawned at ${Math.round(candyX)} after ${this.spikeCounter} spikes! Next candy in ${this.spikesUntilNextCandy - this.spikeCounter} spikes`);
+            console.log(`🍬 Candy spawned at ${Math.round(candyX)} after ${this.spikeCounter} spikes! Next candy in ${this.spikesUntilNextCandy} spikes`);
         }
         
         return candies;
