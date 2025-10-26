@@ -1373,19 +1373,9 @@ class Candy {
         this.floatAmplitude = isFloating ? 8 : 2; // Larger movement if floating
         this.floatSpeed = isFloating ? 1.5 : 2; // Different speeds
         
-        // Visual properties - different candy types
-        const candyTypes = [
-            { wrapper: '#ff4444', candy: '#ffaaaa', accent: '#ffffff' }, // Red candy
-            { wrapper: '#44ff44', candy: '#aaffaa', accent: '#ffffff' }, // Green candy
-            { wrapper: '#4444ff', candy: '#aaaaff', accent: '#ffffff' }, // Blue candy
-            { wrapper: '#ffaa00', candy: '#ffdd88', accent: '#ffffff' }, // Orange candy
-            { wrapper: '#ff44ff', candy: '#ffaaff', accent: '#ffffff' }  // Pink candy
-        ];
-        
-        this.candyType = candyTypes[Math.floor(Math.random() * candyTypes.length)];
-        this.wrapperColor = this.candyType.wrapper;
-        this.candyColor = this.candyType.candy;
-        this.accentColor = this.candyType.accent;
+        // Visual properties - random emoji candy types
+        const candyEmojis = ['🍓', '🍡', '🍬', '🍭'];
+        this.emoji = candyEmojis[Math.floor(Math.random() * candyEmojis.length)];
         
         // Animation properties
         this.animationTimer = 0;
@@ -1463,7 +1453,7 @@ class Candy {
         return true;
     }
     
-    // Render the candy in classic bonbon shape
+    // Render the candy as emoji
     render(ctx) {
         if (this.isCollected) return;
         
@@ -1485,13 +1475,11 @@ class Candy {
         ctx.translate(-centerX, -centerY);
         
         // Draw glow effect (stronger for floating candies)
-        const glowAlpha = this.isFloating ? 0.5 : 0.3;
-        const glowRadius = this.isFloating ? 12 : 8;
-        
-        if (this.glowIntensity > 0.5) {
+        if (this.glowIntensity > 0.5 && this.isFloating) {
+            const glowRadius = 15;
             const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
-            glowGradient.addColorStop(0, `${this.wrapperColor}${Math.floor((this.glowIntensity - 0.5) * glowAlpha * 255).toString(16).padStart(2, '0')}`);
-            glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+            glowGradient.addColorStop(0, `rgba(255, 255, 0, ${(this.glowIntensity - 0.5) * 0.4})`);
+            glowGradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
             ctx.fillStyle = glowGradient;
             ctx.beginPath();
             ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
@@ -1503,95 +1491,18 @@ class Candy {
             ctx.fillStyle = `rgba(255, 255, 255, ${this.glowIntensity * 0.8})`;
             for (let i = 0; i < 4; i++) {
                 const angle = (i / 4) * Math.PI * 2 + this.rotationAngle;
-                const sparkleX = centerX + Math.cos(angle) * (bounds.width / 2 + 8);
-                const sparkleY = centerY + Math.sin(angle) * (bounds.height / 2 + 8);
-                const sparkleSize = 1 + Math.random();
-                ctx.fillRect(sparkleX, sparkleY, sparkleSize, sparkleSize);
+                const sparkleX = centerX + Math.cos(angle) * 20;
+                const sparkleY = centerY + Math.sin(angle) * 20;
+                ctx.fillText('✨', sparkleX - 6, sparkleY + 3);
             }
         }
         
-        // Draw bonbon wrapper ends (twisted paper ends)
-        const wrapperEndWidth = 6;
-        const wrapperEndHeight = 8;
+        // Draw the emoji candy
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.emoji, centerX, centerY);
         
-        // Left wrapper end
-        ctx.fillStyle = this.wrapperColor;
-        ctx.beginPath();
-        ctx.moveTo(bounds.x - wrapperEndWidth, centerY - wrapperEndHeight/2);
-        ctx.lineTo(bounds.x, centerY - 3);
-        ctx.lineTo(bounds.x, centerY + 3);
-        ctx.lineTo(bounds.x - wrapperEndWidth, centerY + wrapperEndHeight/2);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Right wrapper end
-        ctx.beginPath();
-        ctx.moveTo(bounds.x + bounds.width + wrapperEndWidth, centerY - wrapperEndHeight/2);
-        ctx.lineTo(bounds.x + bounds.width, centerY - 3);
-        ctx.lineTo(bounds.x + bounds.width, centerY + 3);
-        ctx.lineTo(bounds.x + bounds.width + wrapperEndWidth, centerY + wrapperEndHeight/2);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Draw main bonbon body (oval/ellipse shape)
-        const bodyGradient = ctx.createRadialGradient(
-            centerX - bounds.width * 0.2, centerY - bounds.height * 0.2, 0,
-            centerX, centerY, Math.max(bounds.width, bounds.height) / 2
-        );
-        bodyGradient.addColorStop(0, this.candyColor);
-        bodyGradient.addColorStop(0.7, this.wrapperColor);
-        bodyGradient.addColorStop(1, this.candyType.wrapper);
-        
-        ctx.fillStyle = bodyGradient;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, bounds.width / 2, bounds.height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw wrapper pattern/stripes on the bonbon
-        ctx.fillStyle = this.accentColor;
-        ctx.globalAlpha = 0.6;
-        
-        // Diagonal stripes across the bonbon
-        for (let i = -1; i <= 1; i++) {
-            const stripeY = centerY + i * 6;
-            ctx.beginPath();
-            ctx.ellipse(centerX, stripeY, bounds.width / 2 - 2, 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        // Draw highlight on bonbon
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = this.accentColor;
-        ctx.beginPath();
-        ctx.ellipse(centerX - bounds.width * 0.2, centerY - bounds.height * 0.2, bounds.width / 4, bounds.height / 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.globalAlpha = 1.0;
-        
-        // Draw wrapper twist lines
-        ctx.strokeStyle = this.wrapperColor;
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.7;
-        
-        // Left twist lines
-        for (let i = 0; i < 3; i++) {
-            const lineY = centerY - 4 + i * 4;
-            ctx.beginPath();
-            ctx.moveTo(bounds.x - wrapperEndWidth + 1, lineY);
-            ctx.lineTo(bounds.x - 1, lineY);
-            ctx.stroke();
-        }
-        
-        // Right twist lines
-        for (let i = 0; i < 3; i++) {
-            const lineY = centerY - 4 + i * 4;
-            ctx.beginPath();
-            ctx.moveTo(bounds.x + bounds.width + 1, lineY);
-            ctx.lineTo(bounds.x + bounds.width + wrapperEndWidth - 1, lineY);
-            ctx.stroke();
-        }
-        
-        ctx.globalAlpha = 1.0;
         ctx.restore();
     }
     
@@ -1626,10 +1537,9 @@ class SpikeObstacle {
         this.width = Number(width);
         this.height = Number(height);
         
-        // Visual properties
-        this.color = '#ff4444';
-        this.tipColor = '#ff0000';
-        this.baseColor = '#cc3333';
+        // Visual properties - random emoji spike types
+        const spikeEmojis = ['🌵', '🔥', '🔱', '⛰'];
+        this.emoji = spikeEmojis[Math.floor(Math.random() * spikeEmojis.length)];
         
         // Collision properties
         this.collisionBox = {
@@ -1696,7 +1606,7 @@ class SpikeObstacle {
         }
     }
     
-    // Render the spike obstacle
+    // Render the spike obstacle as emoji
     render(ctx) {
         const bounds = this.getVisualBounds();
         
@@ -1708,82 +1618,27 @@ class SpikeObstacle {
         
         ctx.save();
         
-        // Draw spike shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(bounds.x + 2, bounds.y + bounds.height - 2, bounds.width - 2, 4);
-        
-        // Draw spike base
-        ctx.fillStyle = this.baseColor;
-        ctx.fillRect(bounds.x, bounds.y + bounds.height - 8, bounds.width, 8);
-        
-        // Draw spike body with gradient effect - validate values first
-        const gradientStartY = bounds.y;
-        const gradientEndY = bounds.y + bounds.height;
-        
-        if (isNaN(gradientStartY) || isNaN(gradientEndY)) {
-            console.warn('Invalid gradient coordinates:', gradientStartY, gradientEndY);
-            // Fallback to solid color
-            ctx.fillStyle = this.color;
-        } else {
-            const gradient = ctx.createLinearGradient(bounds.x, gradientStartY, bounds.x, gradientEndY);
-            gradient.addColorStop(0, this.tipColor);
-            gradient.addColorStop(0.3, this.color);
-            gradient.addColorStop(1, this.baseColor);
-            ctx.fillStyle = gradient;
-        }
-        
-        // Draw multiple sharp spikes
-        const numSpikes = Math.max(1, Math.floor(bounds.width / 8)); // More spikes for wider obstacles
-        const spikeWidth = bounds.width / numSpikes;
-        
-        for (let i = 0; i < numSpikes; i++) {
-            const spikeX = bounds.x + (i * spikeWidth);
-            const spikeCenterX = spikeX + spikeWidth / 2;
-            
-            // Draw individual spike (very sharp triangle)
-            ctx.beginPath();
-            ctx.moveTo(spikeCenterX, bounds.y); // Sharp top point
-            ctx.lineTo(spikeX + 1, bounds.y + bounds.height - 8); // Bottom left (narrower base)
-            ctx.lineTo(spikeX + spikeWidth - 1, bounds.y + bounds.height - 8); // Bottom right (narrower base)
-            ctx.closePath();
-            ctx.fill();
-            
-            // Draw spike tip highlight for each spike
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + this.glowIntensity * 0.5})`;
-            ctx.beginPath();
-            ctx.moveTo(spikeCenterX, bounds.y);
-            ctx.lineTo(spikeCenterX - 2, bounds.y + 4);
-            ctx.lineTo(spikeCenterX + 2, bounds.y + 4);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Reset fill style for next spike
-            if (isNaN(gradientStartY) || isNaN(gradientEndY)) {
-                ctx.fillStyle = this.color;
-            } else {
-                const gradient = ctx.createLinearGradient(bounds.x, gradientStartY, bounds.x, gradientEndY);
-                gradient.addColorStop(0, this.tipColor);
-                gradient.addColorStop(0.3, this.color);
-                gradient.addColorStop(1, this.baseColor);
-                ctx.fillStyle = gradient;
-            }
-        }
-        
         // Draw danger glow effect
         if (this.glowIntensity > 0.5) {
-            ctx.fillStyle = `rgba(255, 68, 68, ${(this.glowIntensity - 0.5) * 0.3})`;
-            ctx.fillRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4);
+            const glowRadius = 20;
+            const centerX = bounds.x + bounds.width / 2;
+            const centerY = bounds.y + bounds.height / 2;
+            const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+            glowGradient.addColorStop(0, `rgba(255, 0, 0, ${(this.glowIntensity - 0.5) * 0.4})`);
+            glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
         
-        // Draw warning lines on the sides
-        ctx.strokeStyle = '#ffaa00';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(bounds.x - 1, bounds.y + bounds.height - 10);
-        ctx.lineTo(bounds.x - 1, bounds.y + bounds.height - 5);
-        ctx.moveTo(bounds.x + bounds.width + 1, bounds.y + bounds.height - 10);
-        ctx.lineTo(bounds.x + bounds.width + 1, bounds.y + bounds.height - 5);
-        ctx.stroke();
+        // Draw the emoji spike
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const centerX = bounds.x + bounds.width / 2;
+        const bottomY = bounds.y + bounds.height;
+        ctx.fillText(this.emoji, centerX, bottomY);
         
         ctx.restore();
         
@@ -3413,37 +3268,15 @@ class GameEngine {
     
     // Render all spike obstacles
     renderSpikes() {
-        this.spikeObstacles.forEach((spike, index) => {
-            // Simple debug rendering first
-            this.ctx.fillStyle = '#ff4444'; // Red
-            this.ctx.fillRect(spike.position.x, spike.position.y, spike.width, spike.height);
-            
-            // Debug text
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = '8px Arial';
-            this.ctx.fillText(`S${index}`, spike.position.x, spike.position.y - 2);
-            
-            // Original rendering
+        this.spikeObstacles.forEach(spike => {
             spike.render(this.ctx);
         });
     }
     
     // Render all candies
     renderCandies() {
-        this.candies.forEach((candy, index) => {
+        this.candies.forEach(candy => {
             if (!candy.isCollected) {
-                // Simple debug rendering first
-                const debugColor = candy.isFloating ? '#ffaa88' : '#ff8844';
-                this.ctx.fillStyle = debugColor;
-                this.ctx.fillRect(candy.position.x, candy.position.y, candy.width, candy.height);
-                
-                // Debug text
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.font = '8px Arial';
-                const label = candy.isFloating ? `F${index}` : `C${index}`;
-                this.ctx.fillText(label, candy.position.x, candy.position.y - 2);
-                
-                // Original rendering
                 candy.render(this.ctx);
             }
         });
