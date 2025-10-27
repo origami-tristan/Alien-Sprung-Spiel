@@ -1,6 +1,147 @@
 // Alien Jump Game - Main JavaScript File
 // Initial game setup and basic structure
 
+// Emoji Compatibility Detection System
+class EmojiCompatibility {
+    constructor() {
+        this.isEmojiSupported = null;
+        this.testResults = new Map();
+        this.init();
+    }
+    
+    // Initialize emoji compatibility detection
+    init() {
+        this.detectEmojiSupport();
+        console.log(`Emoji support detected: ${this.isEmojiSupported}`);
+    }
+    
+    // Test if browser supports emoji rendering properly
+    detectEmojiSupport() {
+        try {
+            // Create a test canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            
+            // Test with a simple emoji
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🔺', 16, 16);
+            
+            // Get image data to check if emoji was rendered
+            const imageData = ctx.getImageData(0, 0, 32, 32);
+            const data = imageData.data;
+            
+            // Check if any pixels were drawn (non-transparent)
+            let hasPixels = false;
+            for (let i = 3; i < data.length; i += 4) { // Check alpha channel
+                if (data[i] > 0) {
+                    hasPixels = true;
+                    break;
+                }
+            }
+            
+            // Additional test: check if emoji renders as expected size
+            ctx.clearRect(0, 0, 32, 32);
+            ctx.fillText('🔺', 16, 16);
+            const metrics = ctx.measureText('🔺');
+            const hasProperWidth = metrics.width > 10; // Emoji should have reasonable width
+            
+            this.isEmojiSupported = hasPixels && hasProperWidth;
+            
+            // Test specific emojis used in the game
+            this.testSpecificEmojis(['🌵', '🔥', '🔱', '⛰', '🍭', '🍬']);
+            
+        } catch (error) {
+            console.warn('Emoji compatibility test failed:', error);
+            this.isEmojiSupported = false;
+        }
+    }
+    
+    // Test specific emojis for compatibility
+    testSpecificEmojis(emojis) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        
+        emojis.forEach(emoji => {
+            ctx.clearRect(0, 0, 32, 32);
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 16, 16);
+            
+            const imageData = ctx.getImageData(0, 0, 32, 32);
+            const data = imageData.data;
+            
+            let hasPixels = false;
+            for (let i = 3; i < data.length; i += 4) {
+                if (data[i] > 0) {
+                    hasPixels = true;
+                    break;
+                }
+            }
+            
+            this.testResults.set(emoji, hasPixels);
+        });
+    }
+    
+    // Check if a specific emoji is supported
+    isEmojiSupportedSpecific(emoji) {
+        if (this.testResults.has(emoji)) {
+            return this.testResults.get(emoji);
+        }
+        return this.isEmojiSupported;
+    }
+    
+    // Get fallback representation for unsupported emojis
+    getFallbackForEmoji(emoji) {
+        const fallbackMap = {
+            '🌵': { shape: 'cactus', color: '#228B22' },
+            '🔥': { shape: 'flame', color: '#FF4500' },
+            '🔱': { shape: 'trident', color: '#4169E1' },
+            '⛰': { shape: 'mountain', color: '#696969' },
+            '🍭': { shape: 'lollipop', color: '#FF69B4' },
+            '🍬': { shape: 'candy', color: '#FFB6C1' },
+            '🍓': { shape: 'strawberry', color: '#FF6347' },
+            '🍡': { shape: 'dango', color: '#FFB6C1' }
+        };
+        
+        return fallbackMap[emoji] || { shape: 'triangle', color: '#FF0000' };
+    }
+    
+    // Check overall emoji support status
+    hasEmojiSupport() {
+        return this.isEmojiSupported === true;
+    }
+    
+    // Test function to demonstrate emoji compatibility (for debugging)
+    demonstrateCompatibility() {
+        console.log('=== Emoji Compatibility Test Results ===');
+        console.log(`Overall emoji support: ${this.isEmojiSupported}`);
+        console.log('Individual emoji test results:');
+        
+        for (const [emoji, isSupported] of this.testResults) {
+            const fallback = this.getFallbackForEmoji(emoji);
+            console.log(`${emoji}: ${isSupported ? '✅ Supported' : '❌ Not supported'} → Fallback: ${fallback.shape} (${fallback.color})`);
+        }
+        console.log('=========================================');
+    }
+}
+
+// Global emoji compatibility instance
+const emojiCompatibility = new EmojiCompatibility();
+
+// Demonstrate emoji compatibility on page load
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        emojiCompatibility.demonstrateCompatibility();
+    }, 1000);
+});
+
 // Game configuration constants
 const GAME_CONFIG = {
     CANVAS_WIDTH: 800,
@@ -1520,9 +1661,17 @@ class Candy {
         this.floatAmplitude = isFloating ? 8 : 2; // Larger movement if floating
         this.floatSpeed = isFloating ? 1.5 : 2; // Different speeds
         
-        // Visual properties - random emoji candy types
+        // Visual properties - random emoji candy types with compatibility check
         const candyEmojis = ['🍓', '🍡', '🍬', '🍭'];
         this.emoji = candyEmojis[Math.floor(Math.random() * candyEmojis.length)];
+        
+        // Check emoji compatibility and prepare fallback
+        this.useEmojiRendering = emojiCompatibility.isEmojiSupportedSpecific(this.emoji);
+        this.fallbackData = emojiCompatibility.getFallbackForEmoji(this.emoji);
+        
+        if (!this.useEmojiRendering) {
+            console.log(`Candy emoji ${this.emoji} not supported, using fallback: ${this.fallbackData.shape}`);
+        }
         
         // Animation properties
         this.animationTimer = 0;
@@ -1644,13 +1793,179 @@ class Candy {
             }
         }
         
-        // Draw the emoji candy
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.emoji, centerX, centerY);
+        // Draw candy using emoji or fallback rendering
+        if (this.useEmojiRendering && emojiCompatibility.hasEmojiSupport()) {
+            // Use emoji rendering
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.emoji, centerX, centerY);
+        } else {
+            // Use fallback geometric rendering
+            this.renderFallbackCandy(ctx, centerX, centerY, bounds.width, bounds.height);
+        }
         
         ctx.restore();
+    }
+    
+    // Render fallback geometric shapes when emoji is not supported
+    renderFallbackCandy(ctx, centerX, centerY, width, height) {
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.strokeStyle = this.darkenColor(this.fallbackData.color, 0.3);
+        ctx.lineWidth = 1;
+        
+        switch (this.fallbackData.shape) {
+            case 'lollipop':
+                this.renderLollipopShape(ctx, centerX, centerY, width, height);
+                break;
+            case 'candy':
+                this.renderCandyShape(ctx, centerX, centerY, width, height);
+                break;
+            case 'strawberry':
+                this.renderStrawberryShape(ctx, centerX, centerY, width, height);
+                break;
+            case 'dango':
+                this.renderDangoShape(ctx, centerX, centerY, width, height);
+                break;
+            default:
+                // Default circle candy
+                this.renderCircleCandy(ctx, centerX, centerY, width, height);
+                break;
+        }
+    }
+    
+    // Render lollipop shape
+    renderLollipopShape(ctx, centerX, centerY, width, height) {
+        // Stick
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(centerX - 1, centerY + height * 0.2, 2, height * 0.4);
+        
+        // Candy part (circle)
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - height * 0.1, width * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Spiral pattern
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const radius = width * 0.2;
+        for (let angle = 0; angle < Math.PI * 4; angle += 0.2) {
+            const r = radius * (angle / (Math.PI * 4));
+            const x = centerX + Math.cos(angle) * r;
+            const y = centerY - height * 0.1 + Math.sin(angle) * r;
+            if (angle === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+    
+    // Render wrapped candy shape
+    renderCandyShape(ctx, centerX, centerY, width, height) {
+        // Main candy body (oval)
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, width * 0.3, height * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Wrapper ends
+        ctx.fillStyle = this.darkenColor(this.fallbackData.color, 0.2);
+        ctx.fillRect(centerX - width * 0.4, centerY - height * 0.05, width * 0.15, height * 0.1);
+        ctx.fillRect(centerX + width * 0.25, centerY - height * 0.05, width * 0.15, height * 0.1);
+        
+        // Wrapper lines
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1;
+        for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX + i * 3, centerY - height * 0.15);
+            ctx.lineTo(centerX + i * 3, centerY + height * 0.15);
+            ctx.stroke();
+        }
+    }
+    
+    // Render strawberry shape
+    renderStrawberryShape(ctx, centerX, centerY, width, height) {
+        // Main strawberry body
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - height * 0.2);
+        ctx.quadraticCurveTo(centerX - width * 0.25, centerY, centerX - width * 0.15, centerY + height * 0.2);
+        ctx.quadraticCurveTo(centerX, centerY + height * 0.25, centerX + width * 0.15, centerY + height * 0.2);
+        ctx.quadraticCurveTo(centerX + width * 0.25, centerY, centerX, centerY - height * 0.2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Strawberry seeds
+        ctx.fillStyle = '#FFFF00';
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const seedX = centerX + Math.cos(angle) * width * 0.1;
+            const seedY = centerY + Math.sin(angle) * height * 0.05;
+            ctx.beginPath();
+            ctx.arc(seedX, seedY, 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Strawberry leaves
+        ctx.fillStyle = '#228B22';
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - height * 0.2);
+        ctx.lineTo(centerX - width * 0.1, centerY - height * 0.3);
+        ctx.lineTo(centerX + width * 0.1, centerY - height * 0.3);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Render dango shape (three stacked circles)
+    renderDangoShape(ctx, centerX, centerY, width, height) {
+        const ballRadius = width * 0.12;
+        const colors = ['#FFB6C1', '#98FB98', '#FFFFFF'];
+        
+        // Three dango balls
+        for (let i = 0; i < 3; i++) {
+            const ballY = centerY - height * 0.1 + (i - 1) * ballRadius * 1.5;
+            ctx.fillStyle = colors[i];
+            ctx.beginPath();
+            ctx.arc(centerX, ballY, ballRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        // Stick
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(centerX - 1, centerY + height * 0.15, 2, height * 0.2);
+    }
+    
+    // Render simple circle candy (default fallback)
+    renderCircleCandy(ctx, centerX, centerY, width, height) {
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, width * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Simple highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(centerX - width * 0.1, centerY - height * 0.05, width * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Helper function to darken a color
+    darkenColor(color, amount) {
+        // Simple color darkening for hex colors
+        if (color.startsWith('#')) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - Math.floor(255 * amount));
+            const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - Math.floor(255 * amount));
+            const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - Math.floor(255 * amount));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        return color;
     }
     
     // Get candy info for debugging
@@ -1684,9 +1999,17 @@ class SpikeObstacle {
         this.width = Number(width);
         this.height = Number(height);
         
-        // Visual properties - random emoji spike types
+        // Visual properties - random emoji spike types with compatibility check
         const spikeEmojis = ['🌵', '🔥', '🔱', '⛰'];
         this.emoji = spikeEmojis[Math.floor(Math.random() * spikeEmojis.length)];
+        
+        // Check emoji compatibility and prepare fallback
+        this.useEmojiRendering = emojiCompatibility.isEmojiSupportedSpecific(this.emoji);
+        this.fallbackData = emojiCompatibility.getFallbackForEmoji(this.emoji);
+        
+        if (!this.useEmojiRendering) {
+            console.log(`Spike emoji ${this.emoji} not supported, using fallback: ${this.fallbackData.shape}`);
+        }
         
         // Collision properties
         this.collisionBox = {
@@ -1779,13 +2102,19 @@ class SpikeObstacle {
             ctx.fill();
         }
         
-        // Draw the emoji spike
-        ctx.font = '24px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        const centerX = bounds.x + bounds.width / 2;
-        const bottomY = bounds.y + bounds.height;
-        ctx.fillText(this.emoji, centerX, bottomY);
+        // Draw spike using emoji or fallback rendering
+        if (this.useEmojiRendering && emojiCompatibility.hasEmojiSupport()) {
+            // Use emoji rendering
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            const centerX = bounds.x + bounds.width / 2;
+            const bottomY = bounds.y + bounds.height;
+            ctx.fillText(this.emoji, centerX, bottomY);
+        } else {
+            // Use fallback geometric rendering
+            this.renderFallbackSpike(ctx, bounds);
+        }
         
         ctx.restore();
         
@@ -1796,6 +2125,161 @@ class SpikeObstacle {
             ctx.lineWidth = 1;
             ctx.strokeRect(collisionBounds.x, collisionBounds.y, collisionBounds.width, collisionBounds.height);
         }
+    }
+    
+    // Render fallback geometric shapes when emoji is not supported
+    renderFallbackSpike(ctx, bounds) {
+        const centerX = bounds.x + bounds.width / 2;
+        const bottomY = bounds.y + bounds.height;
+        const topY = bounds.y;
+        
+        ctx.fillStyle = this.fallbackData.color;
+        ctx.strokeStyle = this.darkenColor(this.fallbackData.color, 0.3);
+        ctx.lineWidth = 2;
+        
+        switch (this.fallbackData.shape) {
+            case 'cactus':
+                this.renderCactusShape(ctx, centerX, bottomY, bounds.width, bounds.height);
+                break;
+            case 'flame':
+                this.renderFlameShape(ctx, centerX, bottomY, bounds.width, bounds.height);
+                break;
+            case 'trident':
+                this.renderTridentShape(ctx, centerX, bottomY, bounds.width, bounds.height);
+                break;
+            case 'mountain':
+                this.renderMountainShape(ctx, centerX, bottomY, bounds.width, bounds.height);
+                break;
+            default:
+                // Default triangle spike
+                this.renderTriangleSpike(ctx, centerX, bottomY, bounds.width, bounds.height);
+                break;
+        }
+    }
+    
+    // Render cactus-like shape
+    renderCactusShape(ctx, centerX, bottomY, width, height) {
+        // Main stem
+        ctx.fillRect(centerX - width * 0.2, bottomY - height, width * 0.4, height);
+        
+        // Side branches
+        ctx.fillRect(centerX - width * 0.4, bottomY - height * 0.7, width * 0.15, height * 0.4);
+        ctx.fillRect(centerX + width * 0.25, bottomY - height * 0.5, width * 0.15, height * 0.3);
+        
+        // Spikes on main stem
+        for (let i = 0; i < 3; i++) {
+            const spikeY = bottomY - height * (0.2 + i * 0.3);
+            ctx.fillRect(centerX - width * 0.35, spikeY - 2, width * 0.1, 4);
+            ctx.fillRect(centerX + width * 0.25, spikeY - 2, width * 0.1, 4);
+        }
+    }
+    
+    // Render flame-like shape
+    renderFlameShape(ctx, centerX, bottomY, width, height) {
+        ctx.beginPath();
+        ctx.moveTo(centerX, bottomY);
+        
+        // Create flame-like curves
+        const controlPoints = [
+            { x: centerX - width * 0.3, y: bottomY - height * 0.3 },
+            { x: centerX - width * 0.2, y: bottomY - height * 0.7 },
+            { x: centerX, y: bottomY - height },
+            { x: centerX + width * 0.2, y: bottomY - height * 0.7 },
+            { x: centerX + width * 0.3, y: bottomY - height * 0.3 }
+        ];
+        
+        ctx.quadraticCurveTo(controlPoints[0].x, controlPoints[0].y, controlPoints[1].x, controlPoints[1].y);
+        ctx.quadraticCurveTo(controlPoints[2].x, controlPoints[2].y - 5, controlPoints[2].x, controlPoints[2].y);
+        ctx.quadraticCurveTo(controlPoints[2].x, controlPoints[2].y - 5, controlPoints[3].x, controlPoints[3].y);
+        ctx.quadraticCurveTo(controlPoints[4].x, controlPoints[4].y, centerX, bottomY);
+        
+        ctx.fill();
+        ctx.stroke();
+    }
+    
+    // Render trident-like shape
+    renderTridentShape(ctx, centerX, bottomY, width, height) {
+        // Handle
+        ctx.fillRect(centerX - width * 0.05, bottomY - height, width * 0.1, height);
+        
+        // Three prongs
+        const prongWidth = width * 0.15;
+        const prongHeight = height * 0.4;
+        
+        // Left prong
+        ctx.fillRect(centerX - width * 0.3, bottomY - height, prongWidth, prongHeight);
+        // Center prong
+        ctx.fillRect(centerX - prongWidth * 0.5, bottomY - height, prongWidth, prongHeight);
+        // Right prong
+        ctx.fillRect(centerX + width * 0.15, bottomY - height, prongWidth, prongHeight);
+        
+        // Prong tips (triangular)
+        const tipHeight = height * 0.2;
+        ctx.beginPath();
+        // Left tip
+        ctx.moveTo(centerX - width * 0.225, bottomY - height);
+        ctx.lineTo(centerX - width * 0.3, bottomY - height + tipHeight);
+        ctx.lineTo(centerX - width * 0.15, bottomY - height + tipHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Center tip
+        ctx.beginPath();
+        ctx.moveTo(centerX, bottomY - height);
+        ctx.lineTo(centerX - prongWidth * 0.5, bottomY - height + tipHeight);
+        ctx.lineTo(centerX + prongWidth * 0.5, bottomY - height + tipHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Right tip
+        ctx.beginPath();
+        ctx.moveTo(centerX + width * 0.225, bottomY - height);
+        ctx.lineTo(centerX + width * 0.15, bottomY - height + tipHeight);
+        ctx.lineTo(centerX + width * 0.3, bottomY - height + tipHeight);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Render mountain-like shape
+    renderMountainShape(ctx, centerX, bottomY, width, height) {
+        ctx.beginPath();
+        ctx.moveTo(centerX - width * 0.4, bottomY);
+        ctx.lineTo(centerX - width * 0.1, bottomY - height * 0.6);
+        ctx.lineTo(centerX, bottomY - height);
+        ctx.lineTo(centerX + width * 0.1, bottomY - height * 0.6);
+        ctx.lineTo(centerX + width * 0.4, bottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Add some rocky details
+        ctx.fillStyle = this.darkenColor(this.fallbackData.color, 0.2);
+        ctx.fillRect(centerX - width * 0.05, bottomY - height * 0.3, width * 0.1, height * 0.1);
+        ctx.fillRect(centerX + width * 0.1, bottomY - height * 0.5, width * 0.08, height * 0.08);
+    }
+    
+    // Render simple triangle spike (default fallback)
+    renderTriangleSpike(ctx, centerX, bottomY, width, height) {
+        ctx.beginPath();
+        ctx.moveTo(centerX, bottomY - height);
+        ctx.lineTo(centerX - width * 0.4, bottomY);
+        ctx.lineTo(centerX + width * 0.4, bottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+    
+    // Helper function to darken a color
+    darkenColor(color, amount) {
+        // Simple color darkening for hex colors
+        if (color.startsWith('#')) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - Math.floor(255 * amount));
+            const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - Math.floor(255 * amount));
+            const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - Math.floor(255 * amount));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        return color;
     }
     
     // Get spike info for debugging
