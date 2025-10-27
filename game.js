@@ -535,9 +535,13 @@ class Renderer {
         this.ctx.fillText(livesText, this.canvas.width - 10, 40);
         
         const heartsStartX = this.canvas.width - 10 - this.ctx.measureText(livesText).width;
+        this.ctx.font = '16px Arial';
+        this.ctx.textAlign = 'center';
         for (let i = 0; i < gameState.lives; i++) {
-            this.renderHeart(heartsStartX - (i * 12) - 8, 33);
+            this.ctx.fillText('❤️', heartsStartX - (i * 18) - 8, 40);
         }
+        // Reset text alignment
+        this.ctx.textAlign = 'right';
         
         // Distance traveled indicator
         if (alienCharacter) {
@@ -568,8 +572,9 @@ class Renderer {
         this.drawCalls += 7;
     }
     
-    // Render heart icon
+    // Render heart icon (legacy - now using emoji)
     renderHeart(x, y) {
+        // Legacy geometric heart rendering - replaced with ❤️ emoji
         this.ctx.fillStyle = '#ff4444';
         this.ctx.fillRect(x, y + 2, 8, 6);
         this.ctx.fillRect(x + 1, y, 2, 2);
@@ -2642,14 +2647,15 @@ class GameEngine {
         const livesText = `Leben: `;
         this.ctx.fillText(livesText, this.canvas.width - 10, 35);
         
-        // Draw heart icons for lives
+        // Draw heart emoji icons for lives
         const heartsStartX = this.canvas.width - 10 - this.ctx.measureText(livesText).width;
+        this.ctx.font = '16px Arial';
+        this.ctx.textAlign = 'center';
         for (let i = 0; i < this.gameState.lives; i++) {
-            this.ctx.fillStyle = '#ff4444';
-            this.ctx.fillRect(heartsStartX - (i * 12) - 8, 28, 8, 6);
-            this.ctx.fillRect(heartsStartX - (i * 12) - 6, 26, 4, 2);
-            this.ctx.fillRect(heartsStartX - (i * 12) - 4, 26, 4, 2);
+            this.ctx.fillText('❤️', heartsStartX - (i * 18) - 8, 35);
         }
+        // Reset text alignment
+        this.ctx.textAlign = 'right';
         
         // Show invulnerability status
         if (this.alienCharacter && this.alienCharacter.isInvulnerable) {
